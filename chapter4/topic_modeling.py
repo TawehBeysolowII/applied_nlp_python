@@ -14,7 +14,7 @@ np.random.seed(2018)
 n_topics = 10
 stop_words = stopwords.words('english')
 n_frequent_words = 1500
-
+n_components = 10
 
 def print_topics(model, feature_names, n_top_words):
     for topic_idx, topic in enumerate(model.components_):
@@ -47,7 +47,6 @@ def sklearn_topic_model():
 
     create_topic_model(model='tfidf')        
   
-    
 def gensim_topic_model():
     
     def remove_stop_words(text):
@@ -68,12 +67,11 @@ def gensim_topic_model():
         print(header + tail)
     
 def nmf_topic_model():
-    
-    data = load_data()[0]
- 
+
     def create_topic_model(model, n_topics=10, max_iter=5, min_df=10, 
                            max_df=300, stop_words='english', token_pattern=r'\w+'):
-        
+        print(model + ' NMF topic model: ')
+        data = load_data()[0]
         if model == 'tf':
             feature_extractor = CountVectorizer(min_df=min_df, max_df=max_df, 
                                                 stop_words=stop_words, token_pattern=token_pattern)
@@ -82,16 +80,12 @@ def nmf_topic_model():
                                                 stop_words=stop_words, token_pattern=token_pattern)
 
         processed_data = feature_extractor.fit_transform(data)
-        
-        nmf_model = NMF(n_topics=n_topics, learning_method='online', 
-                                                  learning_offset=50., max_iter=max_iter, verbose=1)      
-
+        nmf_model = NMF(n_components=n_components, max_iter=max_iter, beta='kullback-leibler')      
         nmf_model.fit(processed_data)
         tf_features = feature_extractor.get_feature_names()
         print_topics(model=nmf_model, feature_names=tf_features, n_top_words=n_topics)
-        
-    
-    create_topic_model(model='tf')
+           
+    create_topic_model(model='tfidf')
     
 if __name__ == '__main__':    
 
