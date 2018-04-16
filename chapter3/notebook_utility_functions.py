@@ -1,6 +1,9 @@
 
 import os, numpy as np
 
+
+test = list(frozenset(['a', 'b']))
+
 def remove_non_ascii(text):
     return ''.join([word for word in text if ord(word) < 128])
     
