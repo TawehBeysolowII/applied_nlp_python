@@ -5,8 +5,8 @@ def remove_non_ascii(text):
     return ''.join([word for word in text if ord(word) < 128])
     
 def load_data():
-    negative_review_strings = os.listdir('/Users/tawehbeysolow/Downloads/review_data/tokens/neg')
-    positive_review_strings = os.listdir('/Users/tawehbeysolow/Downloads/review_data/tokens/pos')
+    negative_review_strings = os.listdir('/applied_nlp_python/datasets/review_data/tokens/neg')
+    positive_review_strings = os.listdir('/applied_nlp_python/datasets/review_data/tokens/pos')
     negative_reviews, positive_reviews = [], []
     
     for positive_review in positive_review_strings:
