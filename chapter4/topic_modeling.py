@@ -3,7 +3,7 @@
 
 #import the necessary modules 
 import numpy as np 
-import re, gensim
+import re, gensim, pyLDAvis.sklearn
 from sklearn.decomposition import LatentDirichletAllocation, NMF
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from chapter3.movie_review_classification import load_data
@@ -84,9 +84,18 @@ def nmf_topic_model():
         nmf_model.fit(processed_data)
         tf_features = feature_extractor.get_feature_names()
         print_topics(model=nmf_model, feature_names=tf_features, n_top_words=n_topics)
+        return nmf_model, processed_data, feature_extractor
            
     create_topic_model(model='tfidf')
     
+    
+def visualize_topic_model():
+    
+    nmf_model, processed_data, feature_extractor = nmf_topic_model()
+    pyLDAvis.enable_notebook()
+    panel = pyLDAvis.sklearn.prepare(nmf_model, processed_data, feature_extractor, mds='tsne')
+    panel
+   
 if __name__ == '__main__':    
 
     nmf_topic_model()
