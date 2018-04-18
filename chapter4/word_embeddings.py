@@ -135,13 +135,13 @@ def tensorflow_word_embedding(learning_rate=learning_rate, embedding_dim=embeddi
                         '\nError: ' + str(_cross_entropy) + '\n')
         
 
-        word_embedding = sess.run(tf.add(weights['input'], biases['input']))
+        word_embedding = sess.run(tf.add(weights['hidden'], biases['hidden']))
         pca = PCA(n_components=2)
         word_embedding = pca.fit_transform(word_embedding)
         
         #Plotting results from trained word embedding
-        plt.scatter(word_embedding[:, 0], word_embedding[:, 1])
-        word_list = word_dictionary.keys()
+        plt.scatter(word_embedding[0:15, 0], word_embedding[0:15, 1])
+        word_list = word_dictionary.keys()[0:15]
         for i, word in enumerate(word_list):
             plt.annotate(word, xy=(word_embedding[i, 0], word_embedding[i, 1]))
 
