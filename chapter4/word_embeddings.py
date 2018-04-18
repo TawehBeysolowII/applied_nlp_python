@@ -42,12 +42,14 @@ def load_data(max_pages=page_len):
     
 def gensim_preprocess_data():
     data = load_data()
-    sentences = [sent_tokenize(remove_non_ascii(data))][0]
-    tokenized_sentences = list([word_tokenize(sentence) for sentence in sentences if word_tokenize(sentence) not in punctuation])
+    sentences = sent_tokenize(data)
+    tokenized_sentences = list([word_tokenize(sentence) for sentence in sentences])
+    for i in range(0, len(tokenized_sentences)):
+        tokenized_sentences[i] = [word for word in tokenized_sentences[i] if word not in punctuation]
     return tokenized_sentences
     
 def gensim_word_embedding():
-    sentences = gensim_preprocess_data()[1002:1003]
+    sentences = gensim_preprocess_data()[10:11]
     skip_gram = Word2Vec(sentences=sentences, window=window_size, min_count=1)
     word_embedding = skip_gram[skip_gram.wv.vocab]
     pca = PCA(n_components=2)
@@ -68,9 +70,9 @@ def tf_preprocess_data(window_size=window_size):
         
     text_data = load_data()
     vocab_size = len(word_tokenize(text_data))
-    word_dictionary, int_dictionary = {}, {}
+    word_dictionary = {}
     for index, word in enumerate(word_tokenize(text_data)):
-        word_dictionary[word], int_dictionary[index] = index, word
+        word_dictionary[word] = index
            
     sentences = sent_tokenize(text_data)
     tokenized_sentences = list([word_tokenize(sentence) for sentence in sentences])
@@ -121,7 +123,6 @@ def tensorflow_word_embedding(learning_rate=learning_rate, embedding_dim=embeddi
         for epoch in range(epochs):          
             rows = np.random.randint(0, len(x)-50, len(x)-50)
             _train_x, _train_y = x[rows], y[rows]
-
 
             #Batch training
             for start, end in zip(range(0, len(_train_x), batch_size), 
