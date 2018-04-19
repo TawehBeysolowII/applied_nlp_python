@@ -48,7 +48,7 @@ def gensim_preprocess_data():
         tokenized_sentences[i] = [word for word in tokenized_sentences[i] if word not in punctuation]
     return tokenized_sentences
     
-def gensim_word_embedding():
+def gensim_skip_gram():
     sentences = gensim_preprocess_data()[10:11]
     skip_gram = Word2Vec(sentences=sentences, window=window_size, min_count=1)
     word_embedding = skip_gram[skip_gram.wv.vocab]
@@ -96,7 +96,7 @@ def tf_preprocess_data(window_size=window_size):
 
     return x, y, vocab_size, word_dictionary
 
-def tensorflow_word_embedding(learning_rate=learning_rate, embedding_dim=embedding_dim):
+def tensorflow_skip_gram(learning_rate=learning_rate, embedding_dim=embedding_dim):
     x, y, vocab_size, word_dictionary = tf_preprocess_data()
     
     #Defining tensorflow variables and placeholder
@@ -141,12 +141,16 @@ def tensorflow_word_embedding(learning_rate=learning_rate, embedding_dim=embeddi
         word_embedding = pca.fit_transform(word_embedding)
         
         #Plotting results from trained word embedding
-        plt.scatter(word_embedding[0:15, 0], word_embedding[0:15, 1])
-        word_list = word_dictionary.keys()[0:15]
+        plt.scatter(word_embedding[0:20, 0], word_embedding[0:20, 1])
+        word_list = word_dictionary.keys()[0:20]
         for i, word in enumerate(word_list):
             plt.annotate(word, xy=(word_embedding[i, 0], word_embedding[i, 1]))
+            
+            
+            
+def gensim_cbow():
 
 if __name__ == '__main__':
     
-    #gensim_word_embedding()
-    tensorflow_word_embedding()
+    gensim_skip_gram()
+    #tensorflow_skip_gram()

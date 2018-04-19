@@ -1,4 +1,4 @@
-# This repository contains all of the code for the book Applied Natural Language Processing using python 
+#This repository contains all of the code for the book "Applied Natural Language Processing Using Python" 
 Before utilizing any of the code in this repository, users should download all of the packages listed 
 in the requirements.txt file, located under the "applied_nlp_python" directory. After all of these packages 
 are downloaded, the main consideration should be reading the text alongside utilizng the code. Readers 
