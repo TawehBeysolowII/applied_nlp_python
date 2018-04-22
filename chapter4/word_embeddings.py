@@ -12,18 +12,19 @@ from nltk.corpus import stopwords
 from gensim.models import Word2Vec
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
-import tensorflow as tf, numpy as np, string
+import tensorflow as tf, numpy as np, string, math
 
 #Parameters 
 np.random.seed(2018)
-epochs = 100
+epochs = 200
 batch_size = 32
-window_size = 2
+skip_gram_window_size = 2
+cbow_window_size = 4
 learning_rate = 1e-4
 embedding_dim = 300
 stop_words = stopwords.words('english')
 punctuation = set(string.punctuation)
-page_len = 10
+page_len = 20
 
 def remove_non_ascii(text):
     return ''.join([word for word in text if ord(word) < 128])
@@ -49,8 +50,8 @@ def gensim_preprocess_data():
     return tokenized_sentences
     
 def gensim_skip_gram():
-    sentences = gensim_preprocess_data()[10:11]
-    skip_gram = Word2Vec(sentences=sentences, window=window_size, min_count=1)
+    sentences = gensim_preprocess_data()
+    skip_gram = Word2Vec(sentences=sentences, window=skip_gram_window_size, min_count=10, sg=1)
     word_embedding = skip_gram[skip_gram.wv.vocab]
     pca = PCA(n_components=2)
     word_embedding = pca.fit_transform(word_embedding)
@@ -61,43 +62,42 @@ def gensim_skip_gram():
     for i, word in enumerate(word_list):
         plt.annotate(word, xy=(word_embedding[i, 0], word_embedding[i, 1]))
         
-def tf_preprocess_data(window_size=window_size):
+def tf_preprocess_data(window_size, skip_gram):
         
-    def one_hot_encoder(index, vocab_size):
+    def one_hot_encoder(indices, vocab_size, skip_gram):
         vector = np.zeros(vocab_size)
-        vector[index] = 1
+        if skip_gram == True: vector[indices] = 1
+        else:
+            for index in indices: vector[index] = 1  
         return vector
         
     text_data = load_data()
-    vocab_size = len(word_tokenize(text_data))
-    word_dictionary = {}
+    vocab_size, word_dictionary, n_gram_data = len(word_tokenize(text_data)), {}, []
+
     for index, word in enumerate(word_tokenize(text_data)):
         word_dictionary[word] = index
            
-    sentences = sent_tokenize(text_data)
-    tokenized_sentences = list([word_tokenize(sentence) for sentence in sentences])
-    n_gram_data = []
-    
-    #Creating word pairs for word2vec model
-    for sentence in tokenized_sentences:
-        for index, word in enumerate(sentence):
-            if word not in punctuation: 
-                for _word in sentence[max(index - window_size, 0):
-                                      min(index + window_size, len(sentence)) + 1]:
-                    if _word != word:
-                        n_gram_data.append([word, _word])
+    sentences = sent_tokenize(text_data) #Tokenizing sentences
+    tokenized_sentences = list([word_tokenize(sentence) for sentence in sentences]) #Creating lists of words for each tokenized setnece
 
-    #One-hot encoding data and creating dataset intrepretable by skip-gram model
+    for sentence in tokenized_sentences: #Creating word pairs for skip_gram model
+        for index, word in enumerate(sentence):
+            if word not in punctuation: #Removing grammatical objects from input data
+                for _word in sentence[max(index - window_size, 0): min(index + window_size, len(sentence)) + 1]:
+                    if _word != word: #Making sure not to duplicate word_1 when creating n-gram lists
+                        n_gram_data.append([word, _word])
+    
     x, y = np.zeros([len(n_gram_data), vocab_size]), np.zeros([len(n_gram_data), vocab_size])
     
-    for i in range(0, len(n_gram_data)):
-        x[i, :] = one_hot_encoder(word_dictionary[n_gram_data[i][0]], vocab_size=vocab_size)      
-        y[i, :] = one_hot_encoder(word_dictionary[n_gram_data[i][1]], vocab_size=vocab_size)
+    for i in range(0, len(n_gram_data)): #Concatenating one-hot encoded vector into input and output matrices
+        x[i, :] = one_hot_encoder(word_dictionary[n_gram_data[i][0]], vocab_size=vocab_size, skip_gram=skip_gram)      
+        y[i, :] = one_hot_encoder(word_dictionary[n_gram_data[i][1]], vocab_size=vocab_size, skip_gram=skip_gram)            
 
     return x, y, vocab_size, word_dictionary
 
-def tensorflow_skip_gram(learning_rate=learning_rate, embedding_dim=embedding_dim):
-    x, y, vocab_size, word_dictionary = tf_preprocess_data()
+def tf_skip_gram_1(learning_rate=learning_rate, embedding_dim=embedding_dim):
+    
+    x, y, vocab_size, word_dictionary = tf_preprocess_data(window_size=skip_gram_window_size, skip_gram=True)
     
     #Defining tensorflow variables and placeholder
     X = tf.placeholder(tf.float32, shape=(None, vocab_size))
@@ -121,7 +121,7 @@ def tensorflow_skip_gram(learning_rate=learning_rate, embedding_dim=embedding_di
         sess.run(tf.global_variables_initializer())
 
         for epoch in range(epochs):          
-            rows = np.random.randint(0, len(x)-50, len(x)-50)
+            rows = np.random.randint(0, int(math.floor(len(x)*.50)), int(math.floor(len(x)*.50)))
             _train_x, _train_y = x[rows], y[rows]
 
             #Batch training
@@ -141,16 +141,75 @@ def tensorflow_skip_gram(learning_rate=learning_rate, embedding_dim=embedding_di
         word_embedding = pca.fit_transform(word_embedding)
         
         #Plotting results from trained word embedding
-        plt.scatter(word_embedding[0:20, 0], word_embedding[0:20, 1])
-        word_list = word_dictionary.keys()[0:20]
+        plt.scatter(word_embedding[0:50, 0], word_embedding[0:50, 1])
+        word_list = word_dictionary.keys()[0:50]
         for i, word in enumerate(word_list):
             plt.annotate(word, xy=(word_embedding[i, 0], word_embedding[i, 1]))
             
-            
+def tf_skip_gram_2():
+    
+    x, y, vocab_size, word_dictionary = tf_preprocess_data(window_size=skip_gram_window_size, skip_gram=True)
+
             
 def gensim_cbow():
+    sentences = gensim_preprocess_data()
+    cbow = Word2Vec(sentences=sentences, window=skip_gram_window_size+2, min_count=10, sg=0)
+    word_embedding = cbow[cbow.wv.vocab]
+    pca = PCA(n_components=2)
+    word_embedding = pca.fit_transform(word_embedding)
+    
+    #Plotting results from trained word embedding
+    plt.scatter(word_embedding[:, 0], word_embedding[:, 1])
+    word_list = list(cbow.wv.vocab)
+    for i, word in enumerate(word_list):
+        plt.annotate(word, xy=(word_embedding[i, 0], word_embedding[i, 1]))
+        
+def tensorflow_cbow():
+    
+    x, y, vocab_size, word_dictionary = tf_preprocess_data(window_size=cbow_window_size, skip_gram=False)
+    
+    #Defining tensorflow variables and placeholder
+    X = tf.placeholder(tf.float32, shape=(None, vocab_size))
+    Y = tf.placeholder(tf.float32, shape=(None, vocab_size))
+    
+    weights = {'hidden': tf.Variable(tf.random_normal([vocab_size, embedding_dim])),
+               'output': tf.Variable(tf.random_normal([embedding_dim, vocab_size]))}
+
+    biases = {'hidden': tf.Variable(tf.random_normal([embedding_dim])),
+              'output': tf.Variable(tf.random_normal([vocab_size]))}
+              
+    input_layer = tf.add(tf.matmul(X, weights['hidden']), biases['hidden'])
+    output_layer = tf.add(tf.matmul(input_layer, weights['output']), biases['output'])
+    
+    #Defining error, optimizer, and other objects to be used during training
+    cross_entropy = tf.reduce_mean(tf.cast(tf.nn.softmax_cross_entropy_with_logits(logits=output_layer, labels=Y), tf.float32))
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
+    
+    #Executing graph 
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+
+        for epoch in range(epochs):          
+            rows = np.random.randint(0, len(x)-50, len(x)-50)
+            _train_x, _train_y = x[rows], y[rows]
+
+            #Batch training
+            for start, end in zip(range(0, len(_train_x), batch_size), 
+                                  range(batch_size, len(_train_x), batch_size)):
+                
+                _cross_entropy, _optimizer = sess.run([cross_entropy, optimizer], 
+                                                      feed_dict={X:_train_x[start:end], Y: _train_y[start:end]})
+                
+            if epoch%10==0 and epoch > 1:
+                print('Epoch: ' + str(epoch) + 
+                        '\nError: ' + str(_cross_entropy) + '\n')
+
+        #Plotting results 
+    
 
 if __name__ == '__main__':
     
-    gensim_skip_gram()
-    #tensorflow_skip_gram()
+    #gensim_skip_gram()
+    tf_skip_gram_1()
+    #tensorflow_cbow()
+    #gensim_cbow()
