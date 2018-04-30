@@ -19,12 +19,18 @@ np.random.seed(2018)
 epochs = 200
 batch_size = 32
 skip_gram_window_size = 2
-cbow_window_size = 4
+cbow_window_size = 8
 learning_rate = 1e-4
 embedding_dim = 300
 stop_words = stopwords.words('english')
 punctuation = set(string.punctuation)
 page_len = 20
+
+def euclidean_norm(vector):
+    return np.sum([_vector**2 for _vector in vector])
+       
+def cosine_similarity(v1, v2):
+    return np.dot(v1, v2)/float(euclidean_norm(v1)*euclidean_norm(v2))
 
 def remove_non_ascii(text):
     return ''.join([word for word in text if ord(word) < 128])
@@ -51,7 +57,7 @@ def gensim_preprocess_data():
     
 def gensim_skip_gram():
     sentences = gensim_preprocess_data()
-    skip_gram = Word2Vec(sentences=sentences, window=skip_gram_window_size, min_count=10, sg=1)
+    skip_gram = Word2Vec(sentences=sentences, window=1, min_count=10, sg=1)
     word_embedding = skip_gram[skip_gram.wv.vocab]
     pca = PCA(n_components=2)
     word_embedding = pca.fit_transform(word_embedding)
@@ -60,8 +66,8 @@ def gensim_skip_gram():
     plt.scatter(word_embedding[:, 0], word_embedding[:, 1])
     word_list = list(skip_gram.wv.vocab)
     for i, word in enumerate(word_list):
-        plt.annotate(word, xy=(word_embedding[i, 0], word_embedding[i, 1]))
-        
+        plt.annotate(word, xy=(word_embedding[i, 0], word_embedding[i, 1]))      
+
 def tf_preprocess_data(window_size, skip_gram):
         
     def one_hot_encoder(indices, vocab_size, skip_gram):
@@ -72,10 +78,10 @@ def tf_preprocess_data(window_size, skip_gram):
         return vector
         
     text_data = load_data()
-    vocab_size, word_dictionary, n_gram_data = len(word_tokenize(text_data)), {}, []
+    vocab_size, word_dictionary, index_dictionary, n_gram_data = len(word_tokenize(text_data)), {}, {},  []
 
     for index, word in enumerate(word_tokenize(text_data)):
-        word_dictionary[word] = index
+        word_dictionary[word], index_dictionary[index] = index, word
            
     sentences = sent_tokenize(text_data) #Tokenizing sentences
     tokenized_sentences = list([word_tokenize(sentence) for sentence in sentences]) #Creating lists of words for each tokenized setnece
@@ -93,11 +99,11 @@ def tf_preprocess_data(window_size, skip_gram):
         x[i, :] = one_hot_encoder(word_dictionary[n_gram_data[i][0]], vocab_size=vocab_size, skip_gram=skip_gram)      
         y[i, :] = one_hot_encoder(word_dictionary[n_gram_data[i][1]], vocab_size=vocab_size, skip_gram=skip_gram)            
 
-    return x, y, vocab_size, word_dictionary
+    return x, y, vocab_size, word_dictionary, index_dictionary
 
 def tf_skip_gram_1(learning_rate=learning_rate, embedding_dim=embedding_dim):
     
-    x, y, vocab_size, word_dictionary = tf_preprocess_data(window_size=skip_gram_window_size, skip_gram=True)
+    x, y, vocab_size, word_dictionary, index_dictionary = tf_preprocess_data(window_size=skip_gram_window_size, skip_gram=True)
     
     #Defining tensorflow variables and placeholder
     X = tf.placeholder(tf.float32, shape=(None, vocab_size))
@@ -146,14 +152,39 @@ def tf_skip_gram_1(learning_rate=learning_rate, embedding_dim=embedding_dim):
         for i, word in enumerate(word_list):
             plt.annotate(word, xy=(word_embedding[i, 0], word_embedding[i, 1]))
             
+        #Printing Cosine Similaritys of a few words
+        for i, word in enumerate(word_list):
+            print('Cosine distance for %s ' + 
+                  '\n ' + 
+                  str(cosine_similarity(word_embedding[i, 0], word_embedding[i, 1])))%(index_dictionary[i])
+    
+        
+            
 def tf_skip_gram_2():
     
-    x, y, vocab_size, word_dictionary = tf_preprocess_data(window_size=skip_gram_window_size, skip_gram=True)
+    x, y, vocab_size, word_dictionary, index_dictionary = tf_preprocess_data(window_size=skip_gram_window_size, skip_gram=True)
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
             
 def gensim_cbow():
     sentences = gensim_preprocess_data()
-    cbow = Word2Vec(sentences=sentences, window=skip_gram_window_size+2, min_count=10, sg=0)
+    
+    cbow = Word2Vec(sentences=sentences, 
+                    window=1, 
+                    min_count=10, 
+                    sg=0,
+                    cbow_mean=0)
+    
     word_embedding = cbow[cbow.wv.vocab]
     pca = PCA(n_components=2)
     word_embedding = pca.fit_transform(word_embedding)
