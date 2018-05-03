@@ -27,7 +27,7 @@ punctuation = set(string.punctuation)
 page_len = 20
 
 def euclidean_norm(vector):
-    return np.sum([_vector**2 for _vector in vector])
+    return np.sqrt(np.sum([_vector**2 for _vector in vector]))
        
 def cosine_similarity(v1, v2):
     return np.dot(v1, v2)/float(euclidean_norm(v1)*euclidean_norm(v2))
@@ -35,11 +35,11 @@ def cosine_similarity(v1, v2):
 def remove_non_ascii(text):
     return ''.join([word for word in text if ord(word) < 128])
 
-def load_data(max_pages=page_len):
+def load_data(max_pages):
     return_string = StringIO()
     device = TextConverter(PDFResourceManager(), return_string, codec='utf-8', laparams=LAParams())
     interpreter = PDFPageInterpreter(PDFResourceManager(), device=device)
-    filepath = file('/Users/tawehbeysolow/Desktop/applied_nlp_python/datasets/economics_textbook.pdf', 'rb')
+    filepath = file('/Users/tawehbeysolow/Desktop/applied_nlp_python/data_etc/economics_textbook.pdf', 'rb')
     for page in PDFPage.get_pages(filepath, set(), maxpages=max_pages, caching=True, check_extractable=True):
         interpreter.process_page(page)
     text_data = return_string.getvalue()
@@ -47,16 +47,16 @@ def load_data(max_pages=page_len):
     text_data = ' '.join([word for word in word_tokenize(remove_non_ascii(text_data)) if word not in stop_words])
     return text_data
     
-def gensim_preprocess_data():
-    data = load_data()
+def gensim_preprocess_data(max_pages):
+    data = load_data(max_pages=max_pages)
     sentences = sent_tokenize(data)
     tokenized_sentences = list([word_tokenize(sentence) for sentence in sentences])
     for i in range(0, len(tokenized_sentences)):
         tokenized_sentences[i] = [word for word in tokenized_sentences[i] if word not in punctuation]
     return tokenized_sentences
     
-def gensim_skip_gram():
-    sentences = gensim_preprocess_data()
+def gensim_skip_gram(max_pages):
+    sentences = gensim_preprocess_data(max_pages=max_pages)
     skip_gram = Word2Vec(sentences=sentences, window=1, min_count=10, sg=1)
     word_embedding = skip_gram[skip_gram.wv.vocab]
     pca = PCA(n_components=2)
@@ -68,7 +68,7 @@ def gensim_skip_gram():
     for i, word in enumerate(word_list):
         plt.annotate(word, xy=(word_embedding[i, 0], word_embedding[i, 1]))      
 
-def tf_preprocess_data(window_size, skip_gram):
+def tf_preprocess_data(window_size, skip_gram, max_pages):
         
     def one_hot_encoder(indices, vocab_size, skip_gram):
         vector = np.zeros(vocab_size)
@@ -77,7 +77,7 @@ def tf_preprocess_data(window_size, skip_gram):
             for index in indices: vector[index] = 1  
         return vector
         
-    text_data = load_data()
+    text_data = load_data(max_pages=max_pages)
     vocab_size, word_dictionary, index_dictionary, n_gram_data = len(word_tokenize(text_data)), {}, {},  []
 
     for index, word in enumerate(word_tokenize(text_data)):
@@ -157,27 +157,15 @@ def tf_skip_gram_1(learning_rate=learning_rate, embedding_dim=embedding_dim):
             print('Cosine distance for %s ' + 
                   '\n ' + 
                   str(cosine_similarity(word_embedding[i, 0], word_embedding[i, 1])))%(index_dictionary[i])
-    
-        
+       
             
 def tf_skip_gram_2():
     
     x, y, vocab_size, word_dictionary, index_dictionary = tf_preprocess_data(window_size=skip_gram_window_size, skip_gram=True)
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+  
             
-def gensim_cbow():
-    sentences = gensim_preprocess_data()
+def gensim_cbow(max_pages):
+    sentences = gensim_preprocess_data(max_pages=max_pages)
     
     cbow = Word2Vec(sentences=sentences, 
                     window=1, 
@@ -190,10 +178,10 @@ def gensim_cbow():
     word_embedding = pca.fit_transform(word_embedding)
     
     #Plotting results from trained word embedding
-    plt.scatter(word_embedding[:, 0], word_embedding[:, 1])
+    plt.scatter(word_embedding[120:150, 0], word_embedding[120:150, 1])
     word_list = list(cbow.wv.vocab)
-    for i, word in enumerate(word_list):
-        plt.annotate(word, xy=(word_embedding[i, 0], word_embedding[i, 1]))
+    for i in range(120, 150):
+        plt.annotate(word_list[i], xy=(word_embedding[i, 0], word_embedding[i, 1]))
         
 def tensorflow_cbow():
     
@@ -241,6 +229,6 @@ def tensorflow_cbow():
 if __name__ == '__main__':
     
     #gensim_skip_gram()
-    tf_skip_gram_1()
+    #tf_skip_gram_1()
     #tensorflow_cbow()
-    #gensim_cbow()
+    gensim_cbow(max_pages=100)
