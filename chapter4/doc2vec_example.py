@@ -7,13 +7,14 @@ from nltk.corpus import stopwords
 from gensim.models import Doc2Vec
 from collections import namedtuple 
 from chapter4.word_embeddings import load_data, cosine_similarity
-import time
+import time, matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 
 #Parameters
 stop_words = stopwords.words('english')
 learning_rate = 1e-4
 epochs = 200
-max_pages = 20
+max_pages = 300
 
 sample_text1 = '''I love italian food. My favorite items are pizza and pasta,
 especially garlic bread. The best italian food I have had has been in New York. 
@@ -33,13 +34,14 @@ def gensim_preprocess_data(max_pages):
     return documents
 
 def train_model(training_example, max_pages=max_pages, epochs=epochs, learning_rate=learning_rate):
-    sentences = gensim_preprocess_data(max_pages=300)
+    sentences = gensim_preprocess_data(max_pages=max_pages)
     model = Doc2Vec(alpha=learning_rate, min_alpha=learning_rate/float(3))
     model.build_vocab(sentences)
     model.train(documents=sentences, total_examples=len(sentences), epochs=epochs)
         
     #Showing distance between different documents 
     if training_example == True:
+        
         for i in range(1, len(sentences)-1):
             print(str('Document ' + str(sentences[i-1]) + '\n'))
             print(str('Document ' + str(sentences[i]) + '\n'))
@@ -47,7 +49,7 @@ def train_model(training_example, max_pages=max_pages, epochs=epochs, learning_r
                   '\n' + str(cosine_similarity(model.docvecs[i-1], model.docvecs[i])))
             
             time.sleep(10)
-        
+                    
     else:
    
         print('Cosine Similarity Between Sample Texts: ' + 
@@ -56,5 +58,5 @@ def train_model(training_example, max_pages=max_pages, epochs=epochs, learning_r
 
 if __name__ == '__main__': 
     
-    #train_model(training_example=True)
-    train_model(training_example=False)
+    train_model(training_example=True)
+    #train_model(training_example=False)

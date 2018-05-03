@@ -24,7 +24,7 @@ learning_rate = 1e-4
 embedding_dim = 300
 stop_words = stopwords.words('english')
 punctuation = set(string.punctuation)
-page_len = 20
+max_pages = 20
 
 def euclidean_norm(vector):
     return np.sqrt(np.sum([_vector**2 for _vector in vector]))
@@ -55,18 +55,26 @@ def gensim_preprocess_data(max_pages):
         tokenized_sentences[i] = [word for word in tokenized_sentences[i] if word not in punctuation]
     return tokenized_sentences
     
-def gensim_skip_gram(max_pages):
+def gensim_skip_gram(max_pages=max_pages):
     sentences = gensim_preprocess_data(max_pages=max_pages)
     skip_gram = Word2Vec(sentences=sentences, window=1, min_count=10, sg=1)
     word_embedding = skip_gram[skip_gram.wv.vocab]
     pca = PCA(n_components=2)
-    word_embedding = pca.fit_transform(word_embedding)
+    _word_embedding = pca.fit_transform(word_embedding)
     
     #Plotting results from trained word embedding
     plt.scatter(word_embedding[:, 0], word_embedding[:, 1])
     word_list = list(skip_gram.wv.vocab)
     for i, word in enumerate(word_list):
-        plt.annotate(word, xy=(word_embedding[i, 0], word_embedding[i, 1]))      
+        plt.annotate(word, xy=(_word_embedding[i, 0], _word_embedding[i, 1])) 
+    
+    
+    #Printing Cosine Similaritys of a few words
+    for i in range(1, len(word_list)- 1):
+        print(str('Cosine distance for %s  and %s' + 
+              '\n ' + 
+              str(cosine_similarity(word_embedding[i, :], word_embedding[i-1, :])))%(word_list[i], word_list[i-1]))
+
 
 def tf_preprocess_data(window_size, skip_gram, max_pages):
         
@@ -101,9 +109,10 @@ def tf_preprocess_data(window_size, skip_gram, max_pages):
 
     return x, y, vocab_size, word_dictionary, index_dictionary
 
-def tf_skip_gram_1(learning_rate=learning_rate, embedding_dim=embedding_dim):
+def tf_skip_gram_1(max_pages=max_pages, learning_rate=learning_rate, embedding_dim=embedding_dim):
     
-    x, y, vocab_size, word_dictionary, index_dictionary = tf_preprocess_data(window_size=skip_gram_window_size, skip_gram=True)
+    x, y, vocab_size, word_dictionary, index_dictionary = tf_preprocess_data(window_size=skip_gram_window_size, 
+                                                                             skip_gram=True, max_pages=max_pages)
     
     #Defining tensorflow variables and placeholder
     X = tf.placeholder(tf.float32, shape=(None, vocab_size))
@@ -144,19 +153,13 @@ def tf_skip_gram_1(learning_rate=learning_rate, embedding_dim=embedding_dim):
 
         word_embedding = sess.run(tf.add(weights['hidden'], biases['hidden']))
         pca = PCA(n_components=2)
-        word_embedding = pca.fit_transform(word_embedding)
+        _word_embedding = pca.fit_transform(word_embedding)
         
         #Plotting results from trained word embedding
-        plt.scatter(word_embedding[0:50, 0], word_embedding[0:50, 1])
+        plt.scatter(_word_embedding[0:50, 0], _word_embedding[0:50, 1])
         word_list = word_dictionary.keys()[0:50]
         for i, word in enumerate(word_list):
-            plt.annotate(word, xy=(word_embedding[i, 0], word_embedding[i, 1]))
-            
-        #Printing Cosine Similaritys of a few words
-        for i, word in enumerate(word_list):
-            print('Cosine distance for %s ' + 
-                  '\n ' + 
-                  str(cosine_similarity(word_embedding[i, 0], word_embedding[i, 1])))%(index_dictionary[i])
+            plt.annotate(word, xy=(_word_embedding[i, 0], _word_embedding[i, 1]))
        
             
 def tf_skip_gram_2():
@@ -183,52 +186,10 @@ def gensim_cbow(max_pages):
     for i in range(120, 150):
         plt.annotate(word_list[i], xy=(word_embedding[i, 0], word_embedding[i, 1]))
         
-def tensorflow_cbow():
-    
-    x, y, vocab_size, word_dictionary = tf_preprocess_data(window_size=cbow_window_size, skip_gram=False)
-    
-    #Defining tensorflow variables and placeholder
-    X = tf.placeholder(tf.float32, shape=(None, vocab_size))
-    Y = tf.placeholder(tf.float32, shape=(None, vocab_size))
-    
-    weights = {'hidden': tf.Variable(tf.random_normal([vocab_size, embedding_dim])),
-               'output': tf.Variable(tf.random_normal([embedding_dim, vocab_size]))}
-
-    biases = {'hidden': tf.Variable(tf.random_normal([embedding_dim])),
-              'output': tf.Variable(tf.random_normal([vocab_size]))}
-              
-    input_layer = tf.add(tf.matmul(X, weights['hidden']), biases['hidden'])
-    output_layer = tf.add(tf.matmul(input_layer, weights['output']), biases['output'])
-    
-    #Defining error, optimizer, and other objects to be used during training
-    cross_entropy = tf.reduce_mean(tf.cast(tf.nn.softmax_cross_entropy_with_logits(logits=output_layer, labels=Y), tf.float32))
-    optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
-    
-    #Executing graph 
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-
-        for epoch in range(epochs):          
-            rows = np.random.randint(0, len(x)-50, len(x)-50)
-            _train_x, _train_y = x[rows], y[rows]
-
-            #Batch training
-            for start, end in zip(range(0, len(_train_x), batch_size), 
-                                  range(batch_size, len(_train_x), batch_size)):
-                
-                _cross_entropy, _optimizer = sess.run([cross_entropy, optimizer], 
-                                                      feed_dict={X:_train_x[start:end], Y: _train_y[start:end]})
-                
-            if epoch%10==0 and epoch > 1:
-                print('Epoch: ' + str(epoch) + 
-                        '\nError: ' + str(_cross_entropy) + '\n')
-
-        #Plotting results 
-    
-
 if __name__ == '__main__':
     
-    #gensim_skip_gram()
+    gensim_skip_gram()
     #tf_skip_gram_1()
+    #tf_skip_gram2()
     #tensorflow_cbow()
-    gensim_cbow(max_pages=100)
+    #gensim_cbow(max_pages=100)
