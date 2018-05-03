@@ -10,6 +10,6 @@ tensorflow
 pandas_datareader
 gensim 
 re
-pyLDAbis
+pyLDAvis
 nltk
 pdfminer
