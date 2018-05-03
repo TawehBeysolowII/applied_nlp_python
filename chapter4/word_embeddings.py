@@ -67,14 +67,12 @@ def gensim_skip_gram(max_pages=max_pages):
     word_list = list(skip_gram.wv.vocab)
     for i, word in enumerate(word_list):
         plt.annotate(word, xy=(_word_embedding[i, 0], _word_embedding[i, 1])) 
-    
-    
+        
     #Printing Cosine Similaritys of a few words
     for i in range(1, len(word_list)- 1):
         print(str('Cosine distance for %s  and %s' + 
               '\n ' + 
               str(cosine_similarity(word_embedding[i, :], word_embedding[i-1, :])))%(word_list[i], word_list[i-1]))
-
 
 def tf_preprocess_data(window_size, skip_gram, max_pages):
         

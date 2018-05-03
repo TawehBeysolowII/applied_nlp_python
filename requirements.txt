@@ -4,12 +4,10 @@ numpy
 pandas
 mnist
 matplotlib
-math
 sklearn
 tensorflow
 pandas_datareader
 gensim 
-re
 pyLDAvis
 nltk
 pdfminer

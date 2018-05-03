@@ -7,8 +7,7 @@ from nltk.corpus import stopwords
 from gensim.models import Doc2Vec
 from collections import namedtuple 
 from chapter4.word_embeddings import load_data, cosine_similarity
-import time, matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
+import time
 
 #Parameters
 stop_words = stopwords.words('english')
