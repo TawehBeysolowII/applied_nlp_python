@@ -25,6 +25,7 @@ embedding_dim = 300
 stop_words = stopwords.words('english')
 punctuation = set(string.punctuation)
 max_pages = 20
+pdf_file = 'economics_textbook.pdf'
 
 def euclidean_norm(vector):
     return np.sqrt(np.sum([_vector**2 for _vector in vector]))
@@ -35,11 +36,11 @@ def cosine_similarity(v1, v2):
 def remove_non_ascii(text):
     return ''.join([word for word in text if ord(word) < 128])
 
-def load_data(max_pages):
+def load_data(pdf_file=pdf_file, max_pages=max_pages, directory='/Users/tawehbeysolow/Desktop/applied_nlp_python/data_etc/'):
     return_string = StringIO()
     device = TextConverter(PDFResourceManager(), return_string, codec='utf-8', laparams=LAParams())
     interpreter = PDFPageInterpreter(PDFResourceManager(), device=device)
-    filepath = file('/Users/tawehbeysolow/Desktop/applied_nlp_python/data_etc/economics_textbook.pdf', 'rb')
+    filepath = file(directory+pdf_file, 'rb')
     for page in PDFPage.get_pages(filepath, set(), maxpages=max_pages, caching=True, check_extractable=True):
         interpreter.process_page(page)
     text_data = return_string.getvalue()

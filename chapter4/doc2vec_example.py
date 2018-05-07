@@ -17,11 +17,15 @@ max_pages = 300
 
 sample_text1 = '''I love italian food. My favorite items are pizza and pasta,
 especially garlic bread. The best italian food I have had has been in New York. 
-Little Italy was very fun'''
+Little Italy was very fun.'''
 
 sample_text2 = '''My favorite time of italian food is pasta with alfredo sauce. 
 It is very creamy but the cheese is the best part. Whenevr I go to an italian 
 restaurant, I am always certain to get a plate.'''
+
+sample_text3 = '''I went to the movies with my friends and it was surprisingly enjoyable. 
+I don't particularly like superhero films, but the newest Spiderman film was exciting 
+and it made me want to read more about the series.'''
 
 def gensim_preprocess_data(max_pages):
     sentences = namedtuple('sentence', 'words tags')
@@ -54,6 +58,10 @@ def train_model(training_example, max_pages=max_pages, epochs=epochs, learning_r
         print('Cosine Similarity Between Sample Texts: ' + 
           '\n' + str(cosine_similarity(model.infer_vector(sample_text1.lower().split()), 
                                         model.infer_vector(sample_text2.lower().split()))))
+
+        print('Cosine Similarity Between Sample Texts: ' + 
+          '\n' + str(cosine_similarity(model.infer_vector(sample_text1.lower().split()), 
+                                        model.infer_vector(sample_text3.lower().split()))))
 
 if __name__ == '__main__': 
     
