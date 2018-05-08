@@ -36,7 +36,7 @@ def cosine_similarity(v1, v2):
 def remove_non_ascii(text):
     return ''.join([word for word in text if ord(word) < 128])
 
-def load_data(pdf_file=pdf_file, max_pages=max_pages, directory='/Users/tawehbeysolow/Desktop/applied_nlp_python/data_etc/'):
+def load_data(raw_text=False, pdf_file=pdf_file, max_pages=max_pages, directory='/Users/tawehbeysolow/Desktop/applied_nlp_python/data_etc/'):
     return_string = StringIO()
     device = TextConverter(PDFResourceManager(), return_string, codec='utf-8', laparams=LAParams())
     interpreter = PDFPageInterpreter(PDFResourceManager(), device=device)
@@ -45,7 +45,8 @@ def load_data(pdf_file=pdf_file, max_pages=max_pages, directory='/Users/tawehbey
         interpreter.process_page(page)
     text_data = return_string.getvalue()
     filepath.close(), device.close(), return_string.close()
-    text_data = ' '.join([word for word in word_tokenize(remove_non_ascii(text_data)) if word not in stop_words])
+    if raw_text == True: return remove_non_ascii(text_data)
+    else: text_data = ' '.join([word for word in word_tokenize(remove_non_ascii(text_data)) if word not in stop_words])
     return text_data
     
 def gensim_preprocess_data(max_pages):
