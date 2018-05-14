@@ -1,54 +1,60 @@
 #Text Generation Demo
 #Taweh Beysolow II 
 
-#Import the necessary modules 
+#Import the necessary modules
 import numpy as np
 from chapter4.word_embeddings import load_data
-from keras.utils import np_utils
 from keras.models import Sequential
 from keras.layers import LSTM, Dense
+from keras.utils import np_utils
 
-max_pages = 10
+max_pages = 30
 pdf_file = 'harry_potter.pdf'
 misc = '''... '' -- '''.split()
-sequence_length = 50
+sequence_length = 100
+window_size = 2
 
-def preprocess_data(sequnece_length=sequence_length, pdf_file=pdf_file, max_pages=max_pages):
-    x, y, character_dict = [], [], {}
-    text_data = load_data(raw_text=True, pdf_file=pdf_file, max_pages=max_pages)
-    unique_chars = sorted(list(set(text_data.lower())))
-    character_dict = dict((c, i) for i, c in enumerate(unique_chars))
-    num_chars, vocab_length = len(text_data), len(text_data.split())    
-    
-    for i in range(0, len(text_data) - sequnece_length, 1):
+def preprocess_data(sequence_length=sequence_length, max_pages=max_pages, pdf_file=pdf_file):
+    text_data = load_data(max_pages=max_pages, pdf_file=pdf_file)
+    characters = list(set(text_data.lower()))
+    character_dict = dict((character, i) for i, character in enumerate(characters))
+    int_dictionary = dict((i, character) for i, character in enumerate(characters))
+    num_chars, vocab_size = len(text_data), len(characters)
+    x, y = [], []
+
+    for i in range(0, num_chars - sequence_length, 1):
         input_sequence = text_data[i: i+sequence_length]
         output_sequence = text_data[i+sequence_length]
-        x.append(character_dict[char.lower()] for char in input_sequence)
+        x.append([character_dict[character.lower()] for character in input_sequence])
         y.append(character_dict[output_sequence.lower()])
-        
-    for i in range(0, len(x)): #Transforming from generators
-        x[i] = [_x for _x in x[i]]
-
-    x = np.reshape(x, (len(x), sequence_length, 1))
-    x, y = x/float(vocab_length), np_utils.to_categorical(y)
-    return x, y, num_chars, vocab_length 
     
-def train_rnn_keras(epochs, batch_size, activation, num_units):
-
-    x, y, num_chars, vocab_length = preprocess_data()
+    for k in range(0, len(x)): x[i] = [_x for _x in x[i]]    
+    x = np.reshape(x, (len(x), sequence_length, 1))
+    x, y = x/float(vocab_size), np_utils.to_categorical(y)
+    return x, y, num_chars, vocab_size, int_dictionary
+    
+def train_rnn_keras(epochs, activation, num_units): 
+    
+    x, y, num_chars, vocab_size, int_dictionary = preprocess_data()
     
     def create_rnn(num_units=num_units, activation=activation):
         model = Sequential()
-        model.add(LSTM(num_units, activation=activation, input_shape=(x.shape[1], x.shape[2]), return_sequences=True))
-        model.add(LSTM(num_units, activation=activation))
+        model.add(LSTM(num_units, activation=activation, input_shape=(None, x.shape[1])))
         model.add(Dense(y.shape[1], activation='softmax'))
-        model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])            
+        model.compile(loss='categorical_crossentropy', optimizer='adam')            
         model.summary()
         return model
             
     rnn_model = create_rnn()
-    rnn_model.fit(x, y, epochs=epochs, batch_size=batch_size)
-   
+    _x = x.reshape(x.shape[0], 1, x.shape[1])
+    rnn_model.fit(_x, y, epochs=epochs, shuffle=True)
+        
+    #Generating text from neural network
+    predictions = rnn_model.predict(_x[1:])
+    predictions = [np.argmax(prediction) for prediction in predictions]
+    text = [int_dictionary[index] for index in predictions]
+    print(''.join([word for word in text]))  
+        
 if __name__ == '__main__':
     
-    train_rnn_keras(epochs=10, batch_size=100, num_units=200, activation='relu')
+    train_rnn_keras(epochs=1000, num_units=300, activation='selu')

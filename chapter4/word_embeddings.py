@@ -150,7 +150,6 @@ def tf_skip_gram_1(max_pages=max_pages, learning_rate=learning_rate, embedding_d
                 print('Epoch: ' + str(epoch) + 
                         '\nError: ' + str(_cross_entropy) + '\n')
         
-
         word_embedding = sess.run(tf.add(weights['hidden'], biases['hidden']))
         pca = PCA(n_components=2)
         _word_embedding = pca.fit_transform(word_embedding)
@@ -161,7 +160,6 @@ def tf_skip_gram_1(max_pages=max_pages, learning_rate=learning_rate, embedding_d
         for i, word in enumerate(word_list):
             plt.annotate(word, xy=(_word_embedding[i, 0], _word_embedding[i, 1]))
        
-            
 def tf_skip_gram_2():
     
     x, y, vocab_size, word_dictionary, index_dictionary = tf_preprocess_data(window_size=skip_gram_window_size, skip_gram=True)

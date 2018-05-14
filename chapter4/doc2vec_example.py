@@ -23,9 +23,8 @@ sample_text2 = '''My favorite time of italian food is pasta with alfredo sauce.
 It is very creamy but the cheese is the best part. Whenevr I go to an italian 
 restaurant, I am always certain to get a plate.'''
 
-sample_text3 = '''I went to the movies with my friends and it was surprisingly enjoyable. 
-I don't particularly like superhero films, but the newest Spiderman film was exciting 
-and it made me want to read more about the series.'''
+sample_text3 = '''Harry Potter walked up to Voldemort and tried to attack him!
+His spell was deflected, however, and soon he realized that he was in deep trouble'''
 
 def gensim_preprocess_data(max_pages):
     sentences = namedtuple('sentence', 'words tags')
@@ -65,5 +64,5 @@ def train_model(training_example, max_pages=max_pages, epochs=epochs, learning_r
 
 if __name__ == '__main__': 
     
-    train_model(training_example=True)
-    #train_model(training_example=False)
+    #train_model(training_example=True)
+    train_model(training_example=False)
