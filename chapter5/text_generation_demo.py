@@ -5,7 +5,7 @@
 import numpy as np
 from chapter4.word_embeddings import load_data
 from keras.models import Sequential
-from keras.layers import LSTM, Dense
+from keras.layers import LSTM, Dense, Bidirectional
 from keras.utils import np_utils
 
 max_pages = 30
@@ -53,8 +53,37 @@ def train_rnn_keras(epochs, activation, num_units):
     predictions = rnn_model.predict(_x[1:])
     predictions = [np.argmax(prediction) for prediction in predictions]
     text = [int_dictionary[index] for index in predictions]
-    print(''.join([word for word in text]))  
+    print(''.join([word for word in text])) 
+    
+
+def train_brnn_keras(epochs, activation, num_units):
         
+    x, y, num_chars, vocab_size, int_dictionary = preprocess_data()
+    
+    def create_rnn(num_units=num_units, activation=activation):
+        model = Sequential()
+        
+        model.add(Bidirectional(LSTM(num_units, activation=activation),
+                                input_shape=(None, x.shape[1]),
+                                merge='concat'))
+        
+        model.add(Dense(y.shape[1], activation='softmax'))
+        model.compile(loss='categorical_crossentropy', optimizer='adam')            
+        model.summary()
+        return model
+            
+    rnn_model = create_rnn()
+    _x = x.reshape(x.shape[0], 1, x.shape[1])
+    rnn_model.fit(_x, y, epochs=epochs, shuffle=True)
+        
+    #Generating text from neural network
+    predictions = rnn_model.predict(_x[1:])
+    predictions = [np.argmax(prediction) for prediction in predictions]
+    text = [int_dictionary[index] for index in predictions]
+    print(''.join([word for word in text])) 
+
+    
 if __name__ == '__main__':
     
-    train_rnn_keras(epochs=1000, num_units=300, activation='selu')
+    #train_rnn_keras(epochs=1000, num_units=300, activation='selu')
+    train_brnn_keras(epochs=100, num_units=200, activation='relu')
