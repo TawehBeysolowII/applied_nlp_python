@@ -4,7 +4,7 @@
 #Import the necessary modules 
 import numpy as np
 from keras.models import Model, Input
-from keras.layers import LSTM, Dense
+from keras.layers import LSTM, Dense 
 
 #Parameters
 n_units = 300
