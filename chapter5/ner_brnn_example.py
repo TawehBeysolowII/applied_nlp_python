@@ -4,22 +4,16 @@
 #Import the necessary modules
 import numpy as np, math, string, pandas as pan
 from keras.utils import np_utils
-from keras.models import Model, Input
+from keras.models import Sequential
 from keras.layers import Bidirectional, LSTM, Dense, Embedding, TimeDistributed
 from keras.preprocessing.sequence import pad_sequences
+from sklearn.metrics import accuracy_score
 
 #Parameters
-np.random.seed(2018)
-learning_rate = 0.01
-momentum = 0.9
-activation = 'selu'
-out_act = 'softmax'
-opt = 'adam'
-n_units = 1000
-batch_size = 150
-punctuation= set(string.punctuation)
-input_shape = 75
-epochs = 10
+np.random.seed(2018); learning_rate = 0.01; momentum = 0.9
+activation = 'selu'; out_act = 'softmax'; opt = 'adam'
+n_units = 1000; batch_size = 32; punctuation = set(string.punctuation)
+input_shape = 75; epochs = 1; validation_split = 0.10; output_dim = 20
 
 def load_data():
     text_data = open('/Users/tawehbeysolow/Downloads/train.txt', 'rb').readlines()
@@ -36,18 +30,17 @@ def load_data():
         input_data.append(rows)
     
     input_data = pan.DataFrame(np.concatenate([input_data[j] for j in range(0,len(input_data))]), 
-                           dtype=str,
                            columns=['word', 'pos', 'tag', 'sent_no'])
     
     labels, vocabulary = list(set(input_data['tag'].values)), list(set(input_data['word'].values))
     vocabulary.append('endpad'); vocab_size = len(vocabulary); label_size = len(labels)
     
-    agg_func = lambda input: [(w, p, t) for w, p, t in zip(input['word'].values.tolist(),
+    aggregate_function = lambda input: [(word, pos, label) for word, pos, label in zip(input['word'].values.tolist(),
                                                       input['pos'].values.tolist(),
                                                        input['tag'].values.tolist())]
                            
-    grouped_input_data= input_data.groupby('sent_no').apply(agg_func)
-    sentences = [s for s in grouped_input_data]    
+    grouped_input_data= input_data.groupby('sent_no').apply(aggregate_function)
+    sentences = [sentence for sentence in grouped_input_data]    
     word_dictionary = {word: i for i, word in enumerate(vocabulary)}
     label_dictionary = {label: i for i, label in enumerate(labels)}
     x = [[word_dictionary[word[0]] for word in sent] for sent in sentences]    
@@ -57,31 +50,39 @@ def load_data():
     y = [np_utils.to_categorical(label, num_classes=label_size) for label in y]            
     return x, y, label_dictionary, vocab_size, label_size
     
-def train_lstm_keras():
+def train_brnn_keras():
     
     x, y, label_dictionary, vocab_size, label_size =  load_data()
     train_end = int(math.floor(len(x)*.67))
     train_x, train_y = x[0:train_end] , np.array(y[0:train_end])
     test_x, test_y = x[train_end:] , np.array(y[train_end:])
-
-    def create_lstm():        
-        input = Input(shape=(input_shape, ))
-        model = Embedding(input_dim=vocab_size+1, output_dim=20,
-                          input_length=input_shape, mask_zero=True)(input)
-        
-        model = Bidirectional(LSTM(units=n_units, activation=activation, 
-                                   return_sequences=True))(model)
-        output = TimeDistributed(Dense(label_size, activation=out_act))(model) 
-        model = Model(input, output)
+    
+    def create_brnn():
+        model = Sequential()
+        model.add(Embedding(input_dim=vocab_size+1, output_dim=output_dim,
+                            input_length=input_shape, mask_zero=True))
+        model.add(Bidirectional(LSTM(units=n_units, activation=activation,
+                                     return_sequences=True)))
+        model.add(TimeDistributed(Dense(label_size, activation=out_act)))
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
         model.summary()
         return model
-            
-    lstm_model = create_lstm()
-    lstm_model.fit(train_x, train_y, epochs=epochs, validation_split=0.10, 
-                   shuffle=True, batch_size=batch_size)
+
+    lstm_model = create_brnn()
+    lstm_model.fit(train_x, train_y, epochs=epochs, validation_split=validation_split, 
+                   shuffle=True, batch_size=batch_size, verbose=1)
+    
+    predicted_labels = np.argmax(lstm_model.predict(test_x))
+    actual_labels = [label for label in np.argmax(test_y)]
+    print('Test Set Accuracy: ' + str(accuracy_score(actual_labels, predicted_labels)))
+    predicted_labels = [label_dictionary[label] for label in predicted_labels]
+    actual_labels = [label_dictionary[label] for label in np.argmax(test_y)]
+    label_comparisons = pan.DataFrame([predicted_labels, actual_labels],
+                                      columns=['predicted_label', 'actual_label'])
+    print(label_comparisons.head())
+    
 
 if __name__ == '__main__':
     
-    train_lstm_keras()
+    train_brnn_keras()
     
