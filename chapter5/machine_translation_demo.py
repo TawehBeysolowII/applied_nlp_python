@@ -81,8 +81,19 @@ def train_encoder_decoder():
     seq2seq_model = encoder_decoder(n_encoder_tokens, n_decoder_tokens)
     seq2seq_model.fit([x_encoder, x_decoder], y_decoder, epochs=epochs, shuffle=True)
     
+    #Comparing model predictions and actual labels
+    for start, end in zip(range(0, 10, 1), range(1, 11, 1)):
+        y_predict = seq2seq_model.predict([x_encoder[start:end], x_decoder[start:end]])
+        input_sequences, output_sequences = [], []
+        for i in range(0, len(y_predict[0])): 
+            output_sequences.append(np.argmax(y_predict[0][i]))
+            input_sequences.append(np.argmax(x_decoder[start][i]))
+        
+        output_sequences = ''.join([label_dictionary[key] for key in output_sequences])
+        input_sequences = ''.join([label_dictionary[key] for key in input_sequences])
+        print('Model Prediction: ' + output_sequences); print('Actual Output: ' + input_sequences)
+
 if __name__ == '__main__':
     
     train_encoder_decoder()
-
     

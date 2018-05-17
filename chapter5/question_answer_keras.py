@@ -9,7 +9,8 @@ from keras.layers import LSTM, Dense
 #Parameters
 n_units = 300;
 activation = 'relu'
-epochs = 1
+epochs = 3
+batch_size = 50
 
 def remove_non_ascii(text):
     return ''.join([word for word in text if ord(word) < 128])
@@ -63,17 +64,17 @@ def load_data():
 def encoder_decoder(n_encoder_tokens, n_decoder_tokens):
     
     encoder_input = Input(shape=(None, n_encoder_tokens))    
-    encoder = LSTM(n_units, return_state=True, activation=activation)
+    encoder = LSTM(n_units, return_state=True)
     encoder_output, hidden_state, cell_state = encoder(encoder_input)
     encoder_states = [hidden_state, cell_state]
     
     decoder_input = Input(shape=(None, n_decoder_tokens))
-    decoder = LSTM(n_units, return_state=True, return_sequences=True, activation=activation)
+    decoder = LSTM(n_units, return_state=True, return_sequences=True)
     decoder_output, _, _ = decoder(decoder_input, initial_state=encoder_states)
     
     decoder = Dense(n_decoder_tokens, activation='softmax')(decoder_output)
     model = Model([encoder_input, decoder_input], decoder)
-    model.compile(optimizer='rmsprop', loss='categorical_crossentropy',  metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='categorical_crossentropy',  metrics=['accuracy'])
     model.summary()
     return model
 
@@ -82,13 +83,24 @@ def train_encoder_decoder():
     
     input_data_objects = load_data()
     x_encoder, x_decoder, y_decoder = input_data_objects[0][0], input_data_objects[0][1], input_data_objects[0][2]
-    output_dictionary, n_decoder_tokens = input_data_objects[1][0], input_data_objects[1][1]
+    label_dictionary, n_decoder_tokens = input_data_objects[1][0], input_data_objects[1][1]
     n_encoder_tokens = input_data_objects[1][2]
 
     seq2seq_model = encoder_decoder(n_encoder_tokens, n_decoder_tokens)
-    seq2seq_model.fit([x_encoder, x_decoder], y_decoder, epochs=epochs, shuffle=True)
+    seq2seq_model.fit([x_encoder, x_decoder], y_decoder, batch_size=batch_size, epochs=epochs, shuffle=True)
     
-
+    #Comparing model predictions and actual labels
+    for start, end in zip(range(0, 10, 1), range(1, 11, 1)):
+        y_predict = seq2seq_model.predict([x_encoder[start:end], x_decoder[start:end]])
+        input_sequences, output_sequences = [], []
+        for i in range(0, len(y_predict[0])): 
+            output_sequences.append(np.argmax(y_predict[0][i]))
+            input_sequences.append(np.argmax(x_decoder[start][i]))
+        
+        output_sequences = ''.join([label_dictionary[key] for key in output_sequences])
+        input_sequences = ''.join([label_dictionary[key] for key in input_sequences])
+        print('Model Prediction: ' + output_sequences); print('Actual Output: ' + input_sequences)
+    
 if __name__ == '__main__':
     
     train_encoder_decoder()
