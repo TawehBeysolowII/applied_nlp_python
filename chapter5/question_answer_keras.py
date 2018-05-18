@@ -60,7 +60,6 @@ def load_data():
     variables = list([label_dictionary, n_decoder_tokens, n_encoder_tokens])                             
     return data, variables
 
-
 def encoder_decoder(n_encoder_tokens, n_decoder_tokens):
     
     encoder_input = Input(shape=(None, n_encoder_tokens))    
@@ -78,7 +77,6 @@ def encoder_decoder(n_encoder_tokens, n_decoder_tokens):
     model.summary()
     return model
 
-    
 def train_encoder_decoder():
     
     input_data_objects = load_data()

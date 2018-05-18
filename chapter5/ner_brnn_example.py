@@ -43,12 +43,13 @@ def load_data():
     sentences = [sentence for sentence in grouped_input_data]    
     word_dictionary = {word: i for i, word in enumerate(vocabulary)}
     label_dictionary = {label: i for i, label in enumerate(labels)}
+    output_dictionary = {i: labels for i, labels in enumerate(labels)}
     x = [[word_dictionary[word[0]] for word in sent] for sent in sentences]    
     x = pad_sequences(maxlen=input_shape, sequences=x, padding='post', value=0)
     y = [[label_dictionary[word[2]] for word in sent] for sent in sentences]  
     y = pad_sequences(maxlen=input_shape, sequences=y, padding='post', value=0)
     y = [np_utils.to_categorical(label, num_classes=label_size) for label in y]            
-    return x, y, label_dictionary, vocab_size, label_size
+    return x, y, output_dictionary, vocab_size, label_size
     
 def train_brnn_keras():
     
@@ -72,16 +73,17 @@ def train_brnn_keras():
     lstm_model.fit(train_x, train_y, epochs=epochs, validation_split=validation_split, 
                    shuffle=True, batch_size=batch_size, verbose=1)
     
-    predicted_labels = np.argmax(lstm_model.predict(test_x))
-    actual_labels = [label for label in np.argmax(test_y)]
-    print('Test Set Accuracy: ' + str(accuracy_score(actual_labels, predicted_labels)))
-    predicted_labels = [label_dictionary[label] for label in predicted_labels]
-    actual_labels = [label_dictionary[label] for label in np.argmax(test_y)]
-    label_comparisons = pan.DataFrame([predicted_labels, actual_labels],
-                                      columns=['predicted_label', 'actual_label'])
-    print(label_comparisons.head())
-    
-
+    for start, end in zip(range(0, 1, 1), range(1, 2, 1)):
+        y_predict = lstm_model.predict(test_x[start:end])
+        input_sequences, output_sequences = [], []
+        for i in range(0, len(y_predict[0])): 
+            output_sequences.append(np.argmax(y_predict[0][i]))
+            input_sequences.append(np.argmax(test_y[start][0]))
+        
+        output_sequences = ''.join([label_dictionary[key] for key in output_sequences])
+        input_sequences = ''.join([label_dictionary[key] for key in input_sequences])
+        print('Model Prediction: ' + output_sequences); print('Actual Output: ' + input_sequences)
+        
 if __name__ == '__main__':
     
     train_brnn_keras()

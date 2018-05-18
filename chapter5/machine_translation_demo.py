@@ -7,10 +7,8 @@ from keras.models import Model, Input
 from keras.layers import LSTM, Dense 
 
 #Parameters
-n_units = 300
-activation = 'relu'
-epochs = 1
-output_dim = 20
+n_units = 250 
+epochs = 50
 
 def remove_non_ascii(text):
     return ''.join([word for word in text if ord(word) < 128])
@@ -52,24 +50,22 @@ def load_data():
     variables = list([label_dictionary, n_decoder_tokens, n_encoder_tokens])                             
     return data, variables
     
-
 def encoder_decoder(n_encoder_tokens, n_decoder_tokens):
     
     encoder_input = Input(shape=(None, n_encoder_tokens))    
-    encoder = LSTM(n_units, return_state=True, activation=activation)
+    encoder = LSTM(n_units, return_state=True)
     encoder_output, hidden_state, cell_state = encoder(encoder_input)
     encoder_states = [hidden_state, cell_state]
     
     decoder_input = Input(shape=(None, n_decoder_tokens))
-    decoder = LSTM(n_units, return_state=True, return_sequences=True, activation=activation)
+    decoder = LSTM(n_units, return_state=True, return_sequences=True)
     decoder_output, _, _ = decoder(decoder_input, initial_state=encoder_states)
     
     decoder = Dense(n_decoder_tokens, activation='softmax')(decoder_output)
     model = Model([encoder_input, decoder_input], decoder)
-    model.compile(optimizer='rmsprop', loss='categorical_crossentropy',  metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='categorical_crossentropy',  metrics=['accuracy'])
     model.summary()
     return model
-
     
 def train_encoder_decoder():
     
@@ -79,7 +75,7 @@ def train_encoder_decoder():
     n_encoder_tokens = input_data_objects[1][2]
 
     seq2seq_model = encoder_decoder(n_encoder_tokens, n_decoder_tokens)
-    seq2seq_model.fit([x_encoder, x_decoder], y_decoder, epochs=epochs, shuffle=True)
+    seq2seq_model.fit([x_encoder, x_decoder], y_decoder, epochs=epochs, batch_size=64, shuffle=True)
     
     #Comparing model predictions and actual labels
     for start, end in zip(range(0, 10, 1), range(1, 11, 1)):
