@@ -2,7 +2,7 @@
 #Taweh Beysolow II
 
 #Import the necessary modules
-import numpy as np, math, string, pandas as pan
+import numpy as np, math, string, pandas as pan, time
 from keras.utils import np_utils
 from keras.models import Sequential
 from keras.layers import Bidirectional, LSTM, Dense, Embedding, TimeDistributed
@@ -72,19 +72,24 @@ def train_brnn_keras():
     lstm_model = create_brnn()
     lstm_model.fit(train_x, train_y, epochs=epochs, validation_split=validation_split, 
                    shuffle=True, batch_size=batch_size, verbose=1)
+
     
-    for start, end in zip(range(0, 1, 1), range(1, 2, 1)):
+    for start, end in zip(range(0, 10, 1), range(1, 11, 1)):
         y_predict = lstm_model.predict(test_x[start:end])
-        input_sequences, output_sequences = [], []
+        input_sequences, output_sequences, test_accuracy = [], [], []
         for i in range(0, len(y_predict[0])): 
             output_sequences.append(np.argmax(y_predict[0][i]))
             input_sequences.append(np.argmax(test_y[start][0]))
         
-        output_sequences = ''.join([label_dictionary[key] for key in output_sequences])
-        input_sequences = ''.join([label_dictionary[key] for key in input_sequences])
-        print('Model Prediction: ' + output_sequences); print('Actual Output: ' + input_sequences)
+        test_accuracy.append(accuracy_score(output_sequences, input_sequences))
+        output_sequences = ' '.join([label_dictionary[key] for key in output_sequences]).split()
+        input_sequences = ' '.join([label_dictionary[key] for key in input_sequences]).split()
+        output_input = pan.DataFrame([output_sequences, input_sequences]).T
+        output_input.columns = ['predicted_labels', 'actual_labels']
+        print(output_input.head()); print(test_accuracy) 
+        time.sleep(5)
         
-if __name__ == '__main__':
+#if __name__ == '__main__':
     
     train_brnn_keras()
     
