@@ -14,7 +14,7 @@ np.random.seed(2018); learning_rate = 0.01; momentum = 0.9
 activation = 'selu'; out_act = 'softmax'; opt = 'adam'
 n_units = 1000; batch_size = 32; punctuation = set(string.punctuation)
 input_shape = 75; epochs = 1; validation_split = 0.10; output_dim = 20
-
+ 
 def load_data():
     text_data = open('/Users/tawehbeysolow/Downloads/train.txt', 'rb').readlines()
     text_data = [text_data[k].replace('\t', ' ').split() for k in range(0, len(text_data))]
@@ -54,9 +54,9 @@ def load_data():
 def train_brnn_keras():
     
     x, y, label_dictionary, vocab_size, label_size =  load_data()
-    train_end = int(math.floor(len(x)*.67))
+    train_end = int(math.floor(len(x)*.80))
     train_x, train_y = x[0:train_end] , np.array(y[0:train_end])
-    test_x, test_y = x[train_end:] , np.array(y[train_end:])
+    test_x, test_y = x[train_end:], np.array(y[train_end:])
     
     def create_brnn():
         model = Sequential()
@@ -70,26 +70,22 @@ def train_brnn_keras():
         return model
 
     lstm_model = create_brnn()
-    lstm_model.fit(train_x, train_y, epochs=epochs, validation_split=validation_split, 
-                   shuffle=True, batch_size=batch_size, verbose=1)
+    lstm_model.fit(train_x, train_y, epochs=epochs, shuffle=True, batch_size=batch_size, verbose=1)
 
-    
     for start, end in zip(range(0, 10, 1), range(1, 11, 1)):
         y_predict = lstm_model.predict(test_x[start:end])
-        input_sequences, output_sequences, test_accuracy = [], [], []
+        input_sequences, output_sequences =  [], []
         for i in range(0, len(y_predict[0])): 
             output_sequences.append(np.argmax(y_predict[0][i]))
             input_sequences.append(np.argmax(test_y[start][0]))
         
-        test_accuracy.append(accuracy_score(output_sequences, input_sequences))
+        print('Test Accuracy: ' + str(lstm_model.evaluate(test_x[start:end], test_y[start:end])))
         output_sequences = ' '.join([label_dictionary[key] for key in output_sequences]).split()
         input_sequences = ' '.join([label_dictionary[key] for key in input_sequences]).split()
-        output_input = pan.DataFrame([output_sequences, input_sequences]).T
-        output_input.columns = ['predicted_labels', 'actual_labels']
-        print(output_input.head()); print(test_accuracy) 
-        time.sleep(5)
-        
-#if __name__ == '__main__':
+        output_input_comparison = pan.DataFrame([output_sequences, input_sequences]).T
+        print(output_input_comparison)
+             
+if __name__ == '__main__':
     
     train_brnn_keras()
     

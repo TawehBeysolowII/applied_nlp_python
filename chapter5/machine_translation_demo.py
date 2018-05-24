@@ -1,14 +1,15 @@
 #Machine Translation Demo 
+# -*- coding: utf-8 -*-
 #Taweh Beysolow II 
 
 #Import the necessary modules 
 import numpy as np
 from keras.models import Model, Input
 from keras.layers import LSTM, Dense 
-
+ 
 #Parameters
-n_units = 250 
-epochs = 50
+n_units = 400; epochs = 100; 
+batch_size = 50; max_pairs = 10000
 
 def remove_non_ascii(text):
     return ''.join([word for word in text if ord(word) < 128])
@@ -17,16 +18,15 @@ def load_data():
     input_characters, output_characters = set(), set()
     input, output = [], []
     sentence_pairs = open('/Users/tawehbeysolow/Downloads/deu-eng/deu.txt').read().split('\n')
-    for line in sentence_pairs[: min(12000, len(sentence_pairs))-1]:
+    for line in sentence_pairs[: min(max_pairs, len(sentence_pairs))-1]:
         _input, _output = line.split('\t')
-        output.append('\t'+ _output+'\n')
+        output.append(_output)
         input.append(_input)
         for i in _input: 
             if i not in input_characters: input_characters.add(i.lower())
         for o in _output:
             if o not in output_characters: output_characters.add(o.lower())
-        
-    output_characters.add('\t'); output_characters.add('\n')
+            
     input_characters = sorted(list(input_characters))
     output_characters = sorted(list(output_characters))
     n_encoder_tokens, n_decoder_tokens = len(input_characters), len(output_characters)
@@ -75,10 +75,10 @@ def train_encoder_decoder():
     n_encoder_tokens = input_data_objects[1][2]
 
     seq2seq_model = encoder_decoder(n_encoder_tokens, n_decoder_tokens)
-    seq2seq_model.fit([x_encoder, x_decoder], y_decoder, epochs=epochs, batch_size=64, shuffle=True)
+    seq2seq_model.fit([x_encoder, x_decoder], y_decoder, epochs=epochs, batch_size=batch_size, shuffle=True)
     
     #Comparing model predictions and actual labels
-    for start, end in zip(range(0, 10, 1), range(1, 11, 1)):
+    for start, end in zip(range(10, 20, 1), range(11, 21, 1)):
         y_predict = seq2seq_model.predict([x_encoder[start:end], x_decoder[start:end]])
         input_sequences, output_sequences = [], []
         for i in range(0, len(y_predict[0])): 

@@ -64,8 +64,7 @@ def train_brnn_keras(epochs, activation, num_units):
         model = Sequential()
         
         model.add(Bidirectional(LSTM(num_units, activation=activation),
-                                input_shape=(None, x.shape[1]),
-                                merge='concat'))
+                                input_shape=(None, x.shape[1])))
         
         model.add(Dense(y.shape[1], activation='softmax'))
         model.compile(loss='categorical_crossentropy', optimizer='adam')            

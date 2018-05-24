@@ -7,8 +7,7 @@ from keras.models import Model, Input
 from keras.layers import LSTM, Dense
 
 #Parameters
-n_units = 300;
-activation = 'relu'
+n_units = 300
 epochs = 3
 batch_size = 50
 
