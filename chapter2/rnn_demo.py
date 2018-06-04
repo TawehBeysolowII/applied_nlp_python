@@ -2,45 +2,51 @@
 #Taweh Beysolow II
 
 #Import necessary modules
-import numpy as np
-import tensorflow as tf
+import numpy as np, pandas as pan, tensorflow as tf, math 
+from keras.utils import np_utils
+import pandas_datareader as data
+from sklearn.preprocessing import MinMaxScaler
 
 #Setting parameters to be used
-learning_rate = 0.02
-epochs = 600 #Total number of epochs
-series_len = 50000 # Length of all of the sequences
-bprop_len = 2 #Length of indices for batch processing
-state_size = 4
-n_classes = 2 #Number of classes for data observations
-batch_size = 200
-n_batches = series_len//batch_size//bprop_len #Total number of batches to iterate through
-
-#Generating data for the RNN
-def generate_data():
-    x = np.random.choice(2, series_len, p = [0.5, 0.5]) #Creating Binary Vector with equal probability of classes, of length 50000
-    y = np.roll(x, 3) #Creating Y variable by shifting the X variable by 3 places
-    y[0:3] = 0 #Changing first 4 observations to 0
-    x = x.reshape((batch_size, -1))
-    y = y.reshape((batch_size, -1))
-    return (x, y)
-
-#Vanilla RNN Implementation
-def build_rnn(learning_rate=0.02, epochs=600, state_size=4):
+learning_rate = 0.02; epochs = 600
+series_len = 50000; state_size = 4; batch_size = 32
     
-    #Loading data 
-    x, y = generate_data()
-    #train_x, train_y = x[0:int(np.floor(len(x)*.67)), :], y[0:int(np.floor(len(x)*.67))]
-    #test_x, test_y = x[int(np.floor(len(x)*.67)):, ], y[int(np.floor(len(x)*.67))]                    
+def load_data():
+    tickers = ["F", "SPY","DIA", "HAL", "MSFT", "SWN", "SJM", "SLG"]
+    raw_data = pan.DataFrame()
+    
+    for i in range(0, len(tickers)):
+        print(str((i/float(len(tickers)))*100) + ' percent complete with loading training data...')
+        raw_data = pan.concat([raw_data, data.DataReader(tickers[i], data_source = 'yahoo', 
+                                                             start = '2010-01-01', 
+                                                             end = '2017-01-01')['Close']], axis=1)
+        
+    raw_data.columns = tickers
+    stock_returns = np.matrix(np.zeros([raw_data.shape[0], raw_data.shape[1]]))
+    for j in range(0, raw_data.shape[1]):
+        for i in range(0, len(raw_data)-1):
+            stock_returns[i,j] = raw_data.ix[i+1,j]/raw_data.ix[i,j] - 1
+    y = [1 if stock_returns[i, 0] > stock_returns[i-1, 0] else  0 for i in range(1, len(stock_returns))]
+    y = np_utils.to_categorical(y[1:])
+    x = stock_returns[0:len(stock_returns)-2, :]
+    return x, y
+    
+#Vanilla RNN Implementation   
+def make_rnn(learning_rate=0.02, epochs=600, state_size=4, n_hidden=300):
+    
+    x, y = load_data(); scaler = MinMaxScaler(feature_range=(0, 1))
+    x, y = scaler.fit_transform(x), scaler.fit_transform(y)
+    train_x, train_y = x[0:int(math.floor(len(x)*.67)),  :], y[0:int(math.floor(len(y)*.67))]
     
     #Creating weights and biases dictionaries
     weights = {'input': tf.Variable(tf.random_normal([state_size+1, state_size])),
-        'output': tf.Variable(tf.random_normal([state_size, n_classes]))}
+        'output': tf.Variable(tf.random_normal([state_size, train_y.shape[1]]))}
     biases = {'input': tf.Variable(tf.random_normal([1, state_size])),
-        'output': tf.Variable(tf.random_normal([1, n_classes]))}
+        'output': tf.Variable(tf.random_normal([1, train_y.shape[1]]))}
 
     #Defining placeholders and variables
-    X = tf.placeholder(tf.float32, [batch_size, bprop_len])
-    Y = tf.placeholder(tf.int32, [batch_size, bprop_len])
+    X = tf.placeholder(tf.float32, [batch_size, train_x.shape[1]])
+    Y = tf.placeholder(tf.int32, [batch_size, train_y.shape[1]])
     init_state = tf.placeholder(tf.float32, [batch_size, state_size])
     input_series = tf.unstack(X, axis=1)
     labels = tf.unstack(Y, axis=1)
@@ -57,8 +63,6 @@ def build_rnn(learning_rate=0.02, epochs=600, state_size=4):
 
     logits = [tf.add(tf.matmul(state, weights['output']), biases['output']) for state in hidden_states]
     predicted_labels = [tf.nn.softmax(logit) for logit in logits] #predictions for each logit within the series
-
-    #Creating error, accuracy, and optimizer variables
     error = [tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logit, labels=label) for logit, label in zip(logits, labels)]
     cross_entropy = tf.reduce_mean(error)
     optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy)
@@ -66,37 +70,25 @@ def build_rnn(learning_rate=0.02, epochs=600, state_size=4):
 
     #Execute Graph
     with tf.Session() as sess:
+        
         sess.run(tf.global_variables_initializer())
         
-        #Loading data from function
         for epoch in range(epochs):
   
             _state = np.zeros([batch_size, state_size])
 
-            #Creating batches for training
-            for batch in range(n_batches):
-                start = batch*bprop_len
-                end = start+bprop_len
+            for start, end in zip(range(0, len(train_x)-batch_size, batch_size), range(batch_size, len(train_x), batch_size)):
+                _train_x, _train_y = train_x[start:end, :], train_y[start:end]
 
-                batch_x = x[:, start:end]
-                batch_y = y[:, start:end]
-
-                #Evaluating Network Performance
                 _error, _error, _state, _accuracy = sess.run([optimizer, cross_entropy, init_state, accuracy],
-                                                                  feed_dict={X:batch_x, Y:batch_y, init_state:_state})
+                                                                  feed_dict={X:_train_x, Y:_train_y, init_state:_state})
                 
-            #Printing logging information on network
             if epoch%20 == 0:
                 print('Epoch: ' + str(epoch) +  
                 '\nError:' + str(_error) + 
                 '\nAccuracy: ' + str(_accuracy) + '\n')
-            
-        #predicted_test_labels = sess.run(predicted_labels, feed_dict={X: x})
-        #test_error = sess.run(cross_entropy, feed_dict={X:x, Y: y})
-        #print('Test Error: ' + str(test_error))
-        #print(predicted_test_labels)
-        
 
+    
 if __name__ == '__main__': 
     
-    build_rnn()
+    make_rnn()
