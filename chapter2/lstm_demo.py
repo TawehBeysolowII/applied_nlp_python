@@ -70,9 +70,9 @@ def train_lstm(learning_rate=learning_rate, n_units=n_hidden, epochs=epochs):
                                                 feed_dict={X: _train_x, Y: _train_y})
                 
             if epoch%10 == 0:
-                print('Epoch: ' + str(epoch) + 
-                '\nAccuracy: ' +  str(_accuracy) + 
-                '\nError: ' + str(_error)+ '\n')
+                print('Epoch: ' + str(epoch) +  
+                '\nError:' + str(_error) + 
+                '\nAccuracy: ' + str(_accuracy) + '\n')
                 
 if __name__ == '__main__':
     
