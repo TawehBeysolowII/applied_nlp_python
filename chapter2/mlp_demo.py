@@ -1,10 +1,9 @@
 #Tensorflow Demos
 #Taweh Beysolow II
 
-import tensorflow as tf
-import numpy as np 
+import tensorflow as tf, numpy as np, pandas as pan
 import pandas_datareader as data
-import pandas as pan
+tf.reset_default_graph()
 
 def load_data():
     tickers = ["F", "SPY","DIA", "HAL", "MSFT", "SWN", "SJM", "SLG"]
@@ -69,20 +68,19 @@ def mlp_model(train_data=train_data, learning_rate=0.01, num_hidden=256, epochs=
         
         for i in range(epochs):
             for _train_x, _train_y in zip(train_x, train_y):
-                sess.run(optimizer, feed_dict={X:_train_x, Y:_train_y })
+                _, _error = sess.run([optimizer, error], feed_dict={X:_train_x, Y:_train_y })
             
             #Printing Logging Information 
-            _error = sess.run(error, feed_dict={X:_train_x, Y:_train_y})
-            print('Epoch ' +  str((i+1)) + ' Error: ' + "{:.6f}".format(_error))
-        
+            print('Epoch ' +  str((i+1)) + ' Error: ' + str(_error))
+                    
         #Predicting out of sample
         test_error = []
         for _test_x, _test_y, in zip(test_x, test_y):
             test_error.append(sess.run(error, feed_dict={X:_test_x, Y:_test_y}))
         print('Test Error: ' + str(np.sum(test_error)))
-        
-
-        
+ 
+'''
+DEPRECATED: NOT A VALID SOLUTION
 def vanishing_gradient(train_data=train_data, activation=tf.nn.relu, learning_rate=0.01, num_hidden=256, epochs=100):
                        
     #Creating training and test sets
@@ -126,13 +124,14 @@ def vanishing_gradient(train_data=train_data, activation=tf.nn.relu, learning_ra
             
             #Printing Logging Information 
             _error = sess.run(error, feed_dict={X:_train_x, Y:_train_y})
-            print('Epoch ' +  str((i+1)) + ' Error: ' + "{:.6f}".format(_error))
+            print('Epoch ' +  str((i+1)) + ' Error: ' + str(_error))
         
         #Predicting out of sample
         test_error = []
         for _test_x, _test_y, in zip(test_x, test_y):
             test_error.append(sess.run(error, feed_dict={X:_test_x, Y:_test_y}))
         print('Test Error: ' + str(np.sum(test_error)))
+'''
         
 def mlp_no_dropout(train_data=train_data, learning_rate=0.01, num_hidden=256, epochs=100):
     
@@ -171,11 +170,10 @@ def mlp_no_dropout(train_data=train_data, learning_rate=0.01, num_hidden=256, ep
         
         for i in range(epochs):
             for _train_x, _train_y in zip(train_x, train_y):
-                sess.run(optimizer, feed_dict={X:_train_x, Y:_train_y })
+                _, _error = sess.run([optimizer, error], feed_dict={X:_train_x, Y:_train_y })
             
             #Printing Logging Information 
-            _error = sess.run(error, feed_dict={X:_train_x, Y:_train_y})
-            print('Epoch ' +  str((i+1)) + ' Error: ' + "{:.6f}".format(_error))
+            print('Epoch ' +  str((i+1)) + ' Error: ' + str(_error))
         
         #Predicting out of sample
         test_error = []
@@ -183,11 +181,9 @@ def mlp_no_dropout(train_data=train_data, learning_rate=0.01, num_hidden=256, ep
             test_error.append(sess.run(error, feed_dict={X:_test_x, Y:_test_y}))
         print('Test Error: ' + str(np.sum(test_error)))
                 
-            
+
 #Making predictions with trained model
 if __name__ == '__main__':
      
-    #vanishing_gradient(activation=tf.nn.sigmoid)
-    #vanishing_gradient(activation=tf.nn.relu)
     #mlp_no_dropout()
     mlp_model() 

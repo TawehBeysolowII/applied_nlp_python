@@ -78,8 +78,8 @@ def make_rnn(learning_rate=0.02, epochs=600, state_size=4, n_hidden=300):
             _state = np.zeros([batch_size, state_size])
 
             for start, end in zip(range(0, len(train_x)-batch_size, batch_size), range(batch_size, len(train_x), batch_size)):
+                
                 _train_x, _train_y = train_x[start:end, :], train_y[start:end]
-
                 _error, _error, _state, _accuracy = sess.run([optimizer, cross_entropy, init_state, accuracy],
                                                                   feed_dict={X:_train_x, Y:_train_y, init_state:_state})
                 

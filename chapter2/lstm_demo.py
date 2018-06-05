@@ -30,8 +30,7 @@ def load_data():
             stock_returns[i,j] = raw_data.ix[i+1,j]/raw_data.ix[i,j] - 1
     y = [1 if stock_returns[i, 0] > stock_returns[i-1, 0] else  0 for i in range(1, len(stock_returns))]
     y = np_utils.to_categorical(y[1:])
-    x = stock_returns[0:len(stock_returns)-2, :]
-                         
+    x = stock_returns[0:len(stock_returns)-2, :]                         
     return x, y
 
 def train_lstm(learning_rate=learning_rate, n_units=n_hidden, epochs=epochs):
@@ -39,7 +38,7 @@ def train_lstm(learning_rate=learning_rate, n_units=n_hidden, epochs=epochs):
     x, y = load_data(); scaler = MinMaxScaler(feature_range=(0, 1))
     x, y = scaler.fit_transform(x), scaler.fit_transform(y)
     train_x, train_y = x[0:int(math.floor(len(x)*.67)),  :], y[0:int(math.floor(len(y)*.67))]
-                    
+    
     X = tf.placeholder(tf.float32, (None, None, train_x.shape[1]))
     Y = tf.placeholder(tf.float32, (None, train_y.shape[1]))
     weights = {'output': tf.Variable(tf.random_normal([n_hidden, train_y.shape[1]]))}
@@ -47,7 +46,7 @@ def train_lstm(learning_rate=learning_rate, n_units=n_hidden, epochs=epochs):
     input_series = tf.reshape(X, [-1, train_x.shape[1]])
     input_series = tf.split(input_series, train_x.shape[1], 1)
     
-    lstm = rnn.core_rnn_cell.BasicLSTMCell(num_units=n_hidden, forget_bias=1.0, reuse=None, state_is_tuple=True)
+    lstm = rnn.BasicLSTMCell(num_units=n_hidden, forget_bias=1.0, reuse=None, state_is_tuple=True)
     _outputs, states = rnn.static_rnn(lstm, input_series, dtype=tf.float32)
     predictions = tf.add(tf.matmul(_outputs[-1], weights['output']), biases['output'])   
     accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(tf.nn.softmax(predictions), 1),
