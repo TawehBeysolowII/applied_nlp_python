@@ -60,6 +60,7 @@ def load_spam_data():
     data = pan.read_csv('/Users/tawehbeysolow/Downloads/smsspamcollection/SMSSPamCollection.csv',
                         delimiter='\t', 
                         header=None)
+    print(data.head())
     x = c.fit_transform(data[1]).todense()
     y = l.fit_transform(data[0])
     print('Vocabulary Size: ' + str(len(c.vocabulary_)))

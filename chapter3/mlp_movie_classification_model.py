@@ -2,29 +2,19 @@
 #2 Layer Neural Network with L1 Weight Regulariztion 
 #Taweh Beysolow II 
 
-import os, math
-import numpy as np
-import pandas as pan
-import tensorflow as tf 
+import os, math, numpy as np, pandas as pan, tensorflow as tf 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import roc_curve, auc, accuracy_score, confusion_matrix
 import matplotlib.pyplot as plt
 
 #Paramters
-np.random.seed(2018)
-learning_rate=1e-4
-epochs=400
-n_classes=2
-n_hidden=1000
-batch_size=32
-drop_p=0.05
+tf.set_random_seed(2018)
+learning_rate = 1e-4; epochs = 100; n_classes = 2
+n_hidden = 1000; batch_size = 32
 
 def summary_statistics(array):
-    Min = min(array)
-    Max = max(array)
-    Range = Max - Min 
-    Mean = np.mean(array)
-    Sdev = np.std(array)
+    Min = min(array); Max = max(array); Range = Max - Min 
+    Mean = np.mean(array); Sdev = np.std(array)
     output = pan.DataFrame([Min, Max, Range, Mean, Sdev]).T
     output.columns = ['Mean', 'Max', 'Range', 'Mean', 'SDev']
     return output
@@ -51,12 +41,10 @@ def load_data():
     rows = np.random.random_integers(0, len(reviews)-1, len(reviews)-1)
     return reviews[rows], labels[rows]
 
-def train_mlp(epochs=epochs, learning_rate=learning_rate, drop_p=drop_p):
-    x, y = load_data()
-    print(x.shape)
+def train_mlp(regularization, epochs=epochs, learning_rate=learning_rate):
+    x, y = load_data(); print(x.shape)
     t = TfidfVectorizer(min_df=10, max_df=300, stop_words='english', token_pattern=r'\w+')
-    x = t.fit_transform(x).todense()
-    train_end = int(math.floor(len(x)*.67))
+    x = t.fit_transform(x).todense(); train_end = int(math.floor(len(x)*.80))
     train_x, train_y = x[0:train_end] , np.array(pan.get_dummies(y[0:train_end]), dtype=int)
     test_x, test_y = x[train_end:] , y[train_end:]
 
@@ -66,36 +54,27 @@ def train_mlp(epochs=epochs, learning_rate=learning_rate, drop_p=drop_p):
 
     weights = {'input': tf.Variable(tf.random_normal([train_x.shape[1], n_hidden])),
                'hidden': tf.Variable(tf.random_normal([n_hidden, n_hidden])),
-                'hidden2': tf.Variable(tf.random_normal([n_hidden, n_hidden])),
                 'output': tf.Variable(tf.random_normal([n_hidden, n_classes]))}
               
     biases = {'input': tf.Variable(tf.random_normal([n_hidden])),
               'hidden': tf.Variable(tf.random_normal([n_hidden])),
-                'hidden2': tf.Variable(tf.random_normal([n_hidden])),
                 'output': tf.Variable(tf.random_normal([n_classes]))}
     
     #Defining tensorflow graph and assorted graph operations 
     input_layer = tf.add(tf.matmul(X, weights['input']), biases['input'])
     input_layer = tf.nn.sigmoid(input_layer)
-    input_layer = tf.nn.dropout(input_layer, drop_p)
-
     hidden_layer = tf.add(tf.matmul(input_layer, weights['hidden']), biases['hidden'])
-    hidden_layer = tf.nn.tanh(hidden_layer)
-    hidden_layer = tf.nn.dropout(hidden_layer, drop_p)
-        
-    #hidden_layer = tf.add(tf.matmul(hidden_layer, weights['hidden2']), biases['hidden2'])
-    #hidden_layer = tf.nn.relu(hidden_layer)
-    #hidden_layer = tf.nn.dropout(hidden_layer, drop_p)
-    
+    hidden_layer = tf.nn.selu(hidden_layer)
     output_layer = tf.add(tf.matmul(hidden_layer, weights['output']), biases['output'])
     
     #Evaluating and backpropagating errors through neural network
     predictions = tf.nn.softmax(output_layer)
-    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(output_layer, 1), tf.argmax(Y, 1)), tf.float32))
+    accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(predictions, 1), tf.argmax(Y, 1)), tf.float32))
     cross_entropy = tf.reduce_mean(tf.cast(tf.nn.softmax_cross_entropy_with_logits(logits=output_layer, labels=Y), tf.float32))
-    regularization = tf.contrib.layers.l2_regularizer(scale=0.0005, scope=None)
-    regularization_penalty = tf.contrib.layers.apply_regularization(regularization, weights.values())
-    cross_entropy = cross_entropy + regularization_penalty
+    if regularization == True:
+        regularization = tf.contrib.layers.l2_regularizer(scale=0.0005, scope=None)
+        regularization_penalty = tf.contrib.layers.apply_regularization(regularization, weights.values())
+        cross_entropy = cross_entropy + regularization_penalty
     adam_optimizer = tf.train.AdamOptimizer(learning_rate).minimize(cross_entropy)
     
     with tf.Session() as sess:       
@@ -106,7 +85,8 @@ def train_mlp(epochs=epochs, learning_rate=learning_rate, drop_p=drop_p):
             _train_x, _train_y = train_x[rows], train_y[rows]
             
             #Batch training
-            for start, end in zip(range(0, len(train_x)-1, batch_size), range(batch_size, len(train_x)-1, batch_size)):
+            for start, end in zip(range(0, len(train_x)-1, batch_size), 
+                                  range(batch_size, len(train_x)-1, batch_size)):
                 __train_x, __train_y = _train_x[start:end], _train_y[start:end]
                 _cross_entropy, _accuracy, _adam_optimizer = sess.run([cross_entropy, accuracy, adam_optimizer],
                                                          feed_dict={X:__train_x, Y:__train_y})
@@ -137,4 +117,4 @@ def train_mlp(epochs=epochs, learning_rate=learning_rate, drop_p=drop_p):
         
 if __name__ == '__main__': 
     
-    train_mlp()
+    train_mlp(regularization=False)

@@ -13,19 +13,12 @@ from sklearn.metrics import roc_curve, auc, accuracy_score, confusion_matrix
 import matplotlib.pyplot as plt
 
 #Parameters 
-np.random.seed(2018)
-trials=100
-n_estimators=1000
-max_depth=30
-learning_rate=1e-4
-alpha=0.5
+np.random.seed(2018); n_estimators=1000
+max_depth=10; learning_rate=1e-4; alpha=0.5
 
 def summary_statistics(array):
-    Min = min(array)
-    Max = max(array)
-    Range = Max - Min 
-    Mean = np.mean(array)
-    Sdev = np.std(array)
+    Min = min(array); Max = max(array); Range = Max - Min 
+    Mean = np.mean(array); Sdev = np.std(array)
     output = pan.DataFrame([Min, Max, Range, Mean, Sdev]).T
     output.columns = ['Mean', 'Max', 'Range', 'Mean', 'SDev']
     return output
@@ -52,7 +45,7 @@ def load_data():
     rows = np.random.random_integers(0, len(reviews)-1, len(reviews)-1)
     return reviews[rows], labels[rows]
 
-def train_logistic_model(penalty, trials=trials):
+def train_logistic_model(penalty, trials=1):
     x, y = load_data()
     t = TfidfVectorizer(min_df=10, max_df=300, stop_words='english', token_pattern=r'\w+')
     x = t.fit_transform(x).todense()
@@ -95,7 +88,7 @@ def train_logistic_model(penalty, trials=trials):
     plt.legend(loc="lower right")
     plt.show()
     
-def train_models():
+def train_models(trials=1):
     #Load and preprocess text data 
     x, y = load_data()
     t = TfidfVectorizer(min_df=10, max_df=300, stop_words='english', token_pattern=r'\w+')
@@ -110,7 +103,7 @@ def train_models():
     #Fitting and evaluating models
     for i in range(trials):
         if i%10 == 0 and i > 0:
-            print('Trial ' + str(i) + ' out of 100 completed')
+            print('Trial ' + str(i) + ' out of 1 completed')
         r.fit(train_x, train_y), b.fit(train_x, train_y)
         r_predicted_y_values = r.predict(train_x)
         r_accuracy_scores.append(accuracy_score(train_y, r_predicted_y_values))
