@@ -12,3 +12,4 @@ pyLDAvis
 nltk
 pdfminer
 string
+textblob
