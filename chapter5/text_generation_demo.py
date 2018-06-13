@@ -84,5 +84,5 @@ def train_brnn_keras(epochs, activation, num_units):
     
 if __name__ == '__main__':
     
-    #train_rnn_keras(epochs=1000, num_units=300, activation='selu')
-    train_brnn_keras(epochs=100, num_units=200, activation='relu')
+    train_rnn_keras(epochs=300, num_units=300, activation='selu')
+    #train_brnn_keras(epochs=100, num_units=200, activation='relu')

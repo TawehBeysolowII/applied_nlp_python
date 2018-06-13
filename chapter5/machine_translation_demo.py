@@ -8,7 +8,7 @@ from keras.models import Model, Input
 from keras.layers import LSTM, Dense 
  
 #Parameters
-n_units = 400; epochs = 100; 
+n_units = 400; epochs = 1000; 
 batch_size = 50; max_pairs = 10000
 
 def remove_non_ascii(text):

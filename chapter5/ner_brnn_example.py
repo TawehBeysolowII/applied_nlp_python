@@ -40,7 +40,7 @@ def load_data():
                                                        input['tag'].values.tolist())]
                            
     grouped_input_data= input_data.groupby('sent_no').apply(aggregate_function)
-    sentences = [sentence for sentence in grouped_input_data]    
+    sentences = [sentence for sentence in grouped_input_data]
     word_dictionary = {word: i for i, word in enumerate(vocabulary)}
     label_dictionary = {label: i for i, label in enumerate(labels)}
     output_dictionary = {i: labels for i, labels in enumerate(labels)}

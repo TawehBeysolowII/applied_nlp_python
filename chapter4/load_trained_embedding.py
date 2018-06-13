@@ -4,17 +4,17 @@
 #Import the necessary modules 
 import numpy as np, tensorflow as tf, matplotlib.pyplot as plt, collections
 from chapter4.word_embeddings import load_data, cosine_similarity
-from chapter3.text_preprocessing_demo import preprocessing as remove_stop_words
 from nltk.corpus import stopwords
 from sklearn.decomposition import PCA
 from tensorflow.contrib import rnn
 from scipy import spatial
 
 #Parameters
-learning_rate = 1e-4
-n_input = 5
-n_hidden = 300
-epochs = 100
+learning_rate = 1e-4; n_input = 5; 
+n_hidden = 300; epochs = 100 
+offset=10
+
+
 sample_text = '''Living in different places has been the greatest experience 
 that I have had in my life. It has allowed me to understand people from 
 different walks of life, as well as to question some of my own biases I have had 
@@ -48,11 +48,16 @@ def visualize_embedding_example():
         print(text)
 
         
-def training_data_example(sample_text=sample_text, learning_rate=learning_rate, 
-                          n_input=n_input, n_hidden=n_hidden, epochs=epochs):
+def training_data_example(sample_text=sample_text, 
+                          learning_rate=learning_rate, 
+                          n_input=n_input, 
+                          n_hidden=n_hidden, 
+                          epochs=epochs,
+                          offset=offset):
+    
     vocabulary, embedding, vocabulary_length, embedding_dim = load_embedding()
     _sample_text = np.array(sample_text.split()).reshape(sample_text, [-1, ])
-    _embeddings = []
+    _embeddings, embeddings_tmp = [], []
 
     def sample_text_dictionary(data=remove_stop_words(_sample_text)):
         count, dictionary = collections.Counter(data).most_common(), {} #creates list of word/count pairs;
@@ -76,7 +81,7 @@ def training_data_example(sample_text=sample_text, learning_rate=learning_rate,
     decision_tree = spatial.KDTree(embedding)
 
     #Creating recurrent neural network for task
-    X = tf.placeholder(tf.float32, shape=(None, n_input))
+    X = tf.placeholder(tf.float32, shape=(None, None, n_input))
     Y = tf.placeholder(tf.float32, shape=(None, embedding_dim))
     weights = {'output': tf.Variable(tf.random_normal(n_hidden, embedding_dim))}
     biases = {'output': tf.Variable(tf.random_normal(embedding_dim))}
@@ -90,14 +95,13 @@ def training_data_example(sample_text=sample_text, learning_rate=learning_rate,
         
     # reshape input data
     x_unstacked = tf.unstack(embedding_characters, n_input, 1)
-    rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(n_hidden), rnn.BasicLSTMCell(n_hidden)])
+    rnn_cell =  rnn.BasicLSTMCell(num_units=n_hidden, state_is_tuple=True, reuse=None)
     outputs, states = rnn.static_rnn(rnn_cell, x_unstacked, dtype=tf.float32)
     output_layer = tf.matmul(outputs[-1], weights['out']) + biases['out'] 
      
     # Create loss function and optimizer
-    error = tf.reduce_mean(tf.nn.l2_loss(output_layer-Y))
+    error = tf.reduce_mean(tf.pow(output_layer-Y, 2))//len(vocabulary)
     adam_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(error)
-
 
     with tf.Session() as sess:
         
@@ -108,7 +112,7 @@ def training_data_example(sample_text=sample_text, learning_rate=learning_rate,
             sess.run(embedding_initializer, feed_dict={_embedding: embedding})
             
              #Creatin input and output training data
-            x_train = [[dictionary[str(training_data[i])]] for i in range(offset, offset+n_input)]
+            x_train = [[dictionary[str(vocabulary[i])]] for i in range(offset, offset+n_input)]
             x_train = np.reshape(np.array(x_train), [-1, n_input])
             y_train = offset+n_input
             y_train = dictionary[training_data[y_train]]
@@ -120,19 +124,16 @@ def training_data_example(sample_text=sample_text, learning_rate=learning_rate,
                                      feed_dict = {X: x_train, Y: y_train})
             
             
-            loss_total += loss
              
             if epoch%10 == 0 and epoch > 0:
-                words_in = [str(training_data[i]) for i in range(offset, offset+n_input)] 
-                target_word = str(training_data[y_position])
+                words_in = [str(x_train[i]) for i in range(offset, offset+n_input)] 
+                #target_word = str(x_train[y_position])
                 nearest_dist,nearest_idx = decision_tree.query(pred_[0],3)
                 nearest_words = [reverse_dictionary[idx] for idx in nearest_idx]
                   
-                print("%s - [%s] vs [%s]" % (words_in, target_word, nearest_words))
-                print("Average Loss= " + "{:.6f}".format(loss_total/display_step))
-                loss_total=0
+                #print("%s - [%s] vs [%s]" % (words_in, target_word, nearest_words))
+                #print("Average Loss= " + "{:.6f}".format(loss_total/display_step))
           
-                step +=1
                 offset += (n_input+1) 
       
 
@@ -140,4 +141,6 @@ def training_data_example(sample_text=sample_text, learning_rate=learning_rate,
 
 if __name__ == '__main__':
 
-    visualize_embedding_example()
+    #visualize_embedding_example()
+    
+    training_data_example()
