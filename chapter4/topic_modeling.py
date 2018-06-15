@@ -3,7 +3,7 @@
 
 #import the necessary modules 
 import numpy as np 
-import re, gensim, pyLDAvis.sklearn
+import re, gensim#, pyLDAvis.sklearn
 from sklearn.decomposition import LatentDirichletAllocation, NMF
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from chapter3.movie_review_classification import load_data
@@ -38,14 +38,14 @@ def sklearn_topic_model():
                                                 stop_words=stop_words, token_pattern=token_pattern)
             
         processed_data = feature_extractor.fit_transform(data) 
-        lda_model = LatentDirichletAllocation(n_topics=n_topics, learning_method='online', 
-                                              learning_offset=50., max_iter=max_iter, verbose=1)      
+        lda_model = LatentDirichletAllocation(n_components=n_topics, learning_method='online', 
+                                              learning_offset=50., max_iter=max_iter, verbose=0)      
         lda_model.fit(processed_data)       
         tf_features = feature_extractor.get_feature_names()
         print_topics(model=lda_model, feature_names=tf_features, n_top_words=n_topics)
         #return lda_model, processed_data, feature_extractor
 
-    create_topic_model(model='tfidf')        
+    create_topic_model(model='tf')        
   
 def gensim_topic_model():
     
@@ -68,7 +68,7 @@ def gensim_topic_model():
     
 def nmf_topic_model():
 
-    def create_topic_model(model, n_topics=10, max_iter=5, min_df=10, 
+    def create_topic_model(model='tf', n_topics=10, max_iter=5, min_df=10, 
                            max_df=300, stop_words='english', token_pattern=r'\w+'):
         print(model + ' NMF topic model: ')
         data = load_data()[0]
@@ -80,13 +80,13 @@ def nmf_topic_model():
                                                 stop_words=stop_words, token_pattern=token_pattern)
 
         processed_data = feature_extractor.fit_transform(data)
-        nmf_model = NMF(n_components=n_components, max_iter=max_iter, beta='kullback-leibler')      
+        nmf_model = NMF(n_components=n_components, max_iter=max_iter)      
         nmf_model.fit(processed_data)
         tf_features = feature_extractor.get_feature_names()
         print_topics(model=nmf_model, feature_names=tf_features, n_top_words=n_topics)
         return nmf_model, processed_data, feature_extractor
            
-    create_topic_model(model='tfidf')
+    create_topic_model(model='tf')
     
     
 def visualize_topic_model():
@@ -98,6 +98,7 @@ def visualize_topic_model():
    
 if __name__ == '__main__':    
 
-    nmf_topic_model()
-    
+    #sklearn_topic_model()
+    #nmf_topic_model()
+    gensim_topic_model()
     

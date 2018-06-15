@@ -159,6 +159,13 @@ def tf_skip_gram_1(max_pages=max_pages, learning_rate=learning_rate, embedding_d
         word_list = word_dictionary.keys()[0:50]
         for i, word in enumerate(word_list):
             plt.annotate(word, xy=(_word_embedding[i, 0], _word_embedding[i, 1]))
+
+        #Printing Cosine Similaritys of a few words
+        for i in range(1, len(word_list)- 1):
+            print(str('Cosine distance for %s  and %s' + 
+                  '\n ' + 
+                  str(cosine_similarity(word_embedding[i, :], word_embedding[i-1, :])))%(word_list[i], word_list[i-1]))
+
        
 def tf_skip_gram_2():
     
@@ -186,8 +193,8 @@ def gensim_cbow(max_pages):
         
 if __name__ == '__main__':
     
-    gensim_skip_gram()
-    #tf_skip_gram_1()
+    #gensim_skip_gram()
+    tf_skip_gram_1()
     #tf_skip_gram2()
     #tensorflow_cbow()
     #gensim_cbow(max_pages=100)

@@ -2,9 +2,8 @@
 #Taweh Beysolow II 
 
 #Import the necessary modules 
-import numpy as np, tensorflow as tf, matplotlib.pyplot as plt, collections
-from chapter4.word_embeddings import load_data, cosine_similarity
-from nltk.corpus import stopwords
+import numpy as np, tensorflow as tf, matplotlib.pyplot as plt, collections, random
+from chapter4.word_embeddings import cosine_similarity
 from sklearn.decomposition import PCA
 from tensorflow.contrib import rnn
 from scipy import spatial
@@ -12,7 +11,7 @@ from scipy import spatial
 #Parameters
 learning_rate = 1e-4; n_input = 5; 
 n_hidden = 300; epochs = 100 
-offset=10
+offset=10; n_units = 300
 
 
 sample_text = '''Living in different places has been the greatest experience 
@@ -22,15 +21,18 @@ with respect to people who did not grow up as I did. If possible, everyone shoul
 take an opportunity to travel somewhere separate from where they grew up.'''.replace('\n', '')
 
 def load_embedding(embedding_path='/Users/tawehbeysolow/Downloads/glove.6B.50D.txt'):
-    vocabulary, embedding = [], []
+    vocabulary, embedding, embedding_dictionary = [], [], {}
     for line in open(embedding_path, 'rb').readlines():
         row = line.strip().split(' ')
         vocabulary.append(row[0]), embedding.append(row[1:])
+        embedding_vector = [float(i) for i in row[1:]]
+        embedding_dictionary[row[0]] = embedding_vector
     vocabulary_length, embedding_dim = len(vocabulary), len(embedding[0])
-    return vocabulary, np.asarray(embedding, dtype=float), vocabulary_length, embedding_dim
+    return vocabulary, np.asarray(embedding, dtype=float), vocabulary_length, embedding_dim, embedding_dictionary
 
 def visualize_embedding_example():
-    vocabulary, embedding, vocabulary_length, embedding_dim = load_embedding()
+    
+    vocabulary, embedding, vocabulary_length, embedding_dim, embedding_dictionary = load_embedding()
 
     #Showing example of pretrained word embedding vectors
     pca = PCA(n_components=2)
@@ -53,13 +55,15 @@ def training_data_example(sample_text=sample_text,
                           n_input=n_input, 
                           n_hidden=n_hidden, 
                           epochs=epochs,
-                          offset=offset):
+                          offset=offset,
+                          n_units=n_units):
     
-    vocabulary, embedding, vocabulary_length, embedding_dim = load_embedding()
-    _sample_text = np.array(sample_text.split()).reshape(sample_text, [-1, ])
-    _embeddings, embeddings_tmp = [], []
+    vocabulary, embedding, vocabulary_length, embedding_dim, embedding_dictionary = load_embedding()
+    _sample_text = np.array(sample_text.split())
+    _sample_text = _sample_text.reshape([-1, ])
+    _embedding_array = []
 
-    def sample_text_dictionary(data=remove_stop_words(_sample_text)):
+    def sample_text_dictionary(data=_sample_text):
         count, dictionary = collections.Counter(data).most_common(), {} #creates list of word/count pairs;
         for word, _ in count:
             dictionary[word] = len(dictionary) #len(dictionary) increases each iteration
@@ -73,71 +77,65 @@ def training_data_example(sample_text=sample_text,
     for i in range(_vocabulary_length):
         word = dictionary_list[i][0]
         if word in vocabulary:
-            _embeddings.append(embedding_dict[item])
+            _embedding_array.append(embedding_dictionary[word])
         else:
-            embeddings_tmp.append(np.random.uniform(low=-0.2, high=0.2,size=embedding_dim))
+            _embedding_array.append(np.random.uniform(low=-0.2, high=0.2, size=embedding_dim))
      
-    embedding_array = np.asarray(embeddings_tmp)     
-    decision_tree = spatial.KDTree(embedding)
+    embedding_array = np.asarray(_embedding_array)     
+    decision_tree = spatial.KDTree(embedding_array)
 
-    #Creating recurrent neural network for task
-    X = tf.placeholder(tf.float32, shape=(None, None, n_input))
+    #Initializing placeholders and other variables
+    X = tf.placeholder(tf.int32, shape=(None, None, n_input))
     Y = tf.placeholder(tf.float32, shape=(None, embedding_dim))
-    weights = {'output': tf.Variable(tf.random_normal(n_hidden, embedding_dim))}
-    biases = {'output': tf.Variable(tf.random_normal(embedding_dim))}
-              
-    with tf.name_scope("embedding"):
-        _weights = tf.Variable(tf.constant(0.0, shape=[vocabulary_length, embedding_dim]), trainable=True, name='_weights')
-        _embedding = tf.placeholder(tf.float32, [vocabulary_length, embedding_dim])
-        embedding_initializer = _weights.assign(_embedding)
-        embedding_characters = tf.nn.embedding_looking(_weights, X)
-        _sample_text = np.array(sample_text.split()).reshape(sample_text, [-1, ])
+    weights = {'output': tf.Variable(tf.random_normal([n_hidden, embedding_dim]))}
+    biases = {'output': tf.Variable(tf.random_normal([embedding_dim]))}
+    
+    _weights = tf.Variable(tf.constant(0.0, shape=[vocabulary_length, embedding_dim]), trainable=True)
+    _embedding = tf.placeholder(tf.float32, [vocabulary_length, embedding_dim])
+    embedding_initializer = _weights.assign(_embedding)
+    embedding_characters = tf.nn.embedding_lookup(_weights, X)
         
-    # reshape input data
-    x_unstacked = tf.unstack(embedding_characters, n_input, 1)
-    rnn_cell =  rnn.BasicLSTMCell(num_units=n_hidden, state_is_tuple=True, reuse=None)
-    outputs, states = rnn.static_rnn(rnn_cell, x_unstacked, dtype=tf.float32)
-    output_layer = tf.matmul(outputs[-1], weights['out']) + biases['out'] 
-     
-    # Create loss function and optimizer
-    error = tf.reduce_mean(tf.pow(output_layer-Y, 2))//len(vocabulary)
+    input_series = tf.reshape(embedding_characters, [-1, n_input])
+    input_series = tf.split(input_series, n_input, 1)
+    lstm_cell =  rnn.BasicLSTMCell(num_units=n_units, state_is_tuple=True, reuse=None)
+    outputs, states = rnn.static_rnn(lstm_cell, input_series, dtype=tf.float32)
+    
+    output_layer = tf.add(tf.matmul(outputs[-1], weights['output']), biases['output'])
+    error = tf.reduce_mean(tf.nn.l2_loss(output_layer - Y))
     adam_optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(error)
 
     with tf.Session() as sess:
         
-        sess.run(tf.global_variables_initiliazer())
+        sess.run(tf.global_variables_initializer())
         
         for epoch in range(epochs):
+            
+            if offset > (len(_sample_text) - n_input+1): 
+                offset = random.randint(0, n_input+1)
            
             sess.run(embedding_initializer, feed_dict={_embedding: embedding})
             
-             #Creatin input and output training data
-            x_train = [[dictionary[str(vocabulary[i])]] for i in range(offset, offset+n_input)]
-            x_train = np.reshape(np.array(x_train), [-1, n_input])
-            y_train = offset+n_input
-            y_train = dictionary[training_data[y_train]]
-            y_train = embedding[y_train,:]
-            y_train = np.reshape(y_train,[1,-1])
+            #Creatin input and output training data
+            x_train = [[dictionary[str(_sample_text[i])]] for i in range(offset, offset+n_input)]
+            x_train = np.reshape(np.array(x_train), [-1, 1, n_input])
+            y_train = dictionary[_sample_text[offset+n_input]]
+            y_train = embedding[y_train, :]
+            y_train = np.reshape(y_train, [1, -1])
     
             
-            _,loss, pred_ = sess.run([adam_optimizer, error, output_layer], 
+            _, _error, _prediction = sess.run([adam_optimizer, error, output_layer], 
                                      feed_dict = {X: x_train, Y: y_train})
             
-            
-             
             if epoch%10 == 0 and epoch > 0:
-                words_in = [str(x_train[i]) for i in range(offset, offset+n_input)] 
-                #target_word = str(x_train[y_position])
-                nearest_dist,nearest_idx = decision_tree.query(pred_[0],3)
+                words_in = [str(_sample_text[i]) for i in range(offset, offset+n_input)] 
+                target_word = str(_sample_text[offset+n_input])
+                nearest_dist, nearest_idx = decision_tree.query(_prediction[0], 3)
                 nearest_words = [reverse_dictionary[idx] for idx in nearest_idx]
                   
-                #print("%s - [%s] vs [%s]" % (words_in, target_word, nearest_words))
-                #print("Average Loss= " + "{:.6f}".format(loss_total/display_step))
-          
+                print("%s - [%s] vs [%s]" % (words_in, target_word, nearest_words))
+                print('Epoch: %s \nError: %s \n'%(epoch, _error))
                 offset += (n_input+1) 
-      
-
-
+                
 
 if __name__ == '__main__':
 
